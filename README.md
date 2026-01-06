@@ -20,6 +20,7 @@ For Intranet and Enterprise editions, contact team@tirreno.com.
 
 ```
      Community ──────────────► Intranet ──────────────► Enterprise
+     Edition                   Edition                  Edition
          │                         │                         │
          ▼                         ▼                         ▼
     Personal apps             Internal apps            External-facing
@@ -502,105 +503,66 @@ The Logbook page in tirreno dashboard tracks all API requests with these status 
 
 ## Integration guide
 
-This section provides practical guidance for integrating tirreno into your application. Whether you're building a web app, mobile backend, or API service, these patterns will help you implement comprehensive security analytics.
+This section covers integrating tirreno into your application.
 
 ### Why send events to tirreno?
 
-Sending events to tirreno provides **extended security and risk analytics for all users** in your application. This enables:
+tirreno analyzes user events to detect threats and calculate risk scores. Use cases:
 
-- **Security monitoring** Detect account takeover, brute force attacks, and suspicious behavior patterns
-- **Threat hunting** Proactively search for indicators of compromise across all user activity
-- **Insider threat detection** Identify unusual employee behavior and potential data exfiltration
-- **Compliance** Meet regulatory requirements (GDPR, SOC 2, PCI-DSS) with comprehensive user activity logs and field audit trail
-- **Forensic analysis** Investigate security incidents with complete user session history
-- **Risk scoring** Automatically calculate user trust scores based on behavior patterns
-- **Fraud prevention** Identify and block malicious users before they cause damage
-- **IP enrichment** Enrich IP addresses with geolocation, ISP, VPN/proxy detection, and threat intelligence data
+- **Security monitoring:** Detect account takeover, brute force attacks, suspicious behavior
+- **Threat hunting:** Search for indicators of compromise across user activity
+- **Insider threats:** Spot unusual employee behavior, potential data exfiltration
+- **Compliance:** Activity logs and field audit trail for GDPR, SOC 2, PCI-DSS
+- **Forensics:** Investigate incidents with full session history
+- **Risk scoring:** Calculate user trust scores from behavior patterns
+- **Fraud prevention:** Block malicious users before damage occurs
+- **IP enrichment:** Add geolocation, ISP, VPN/proxy detection to IP data
 
-Every event you send builds a complete picture of user behavior dynamics:
-- New devices per day
-- New IPs per day
-- Sessions per day
-- Events per session
-
-The more events you track, the more accurate tirreno's risk detection becomes.
+tirreno tracks per-user metrics: devices per day, IPs per day, sessions, events per session.
 
 > **IP Enrichment API:** tirreno provides an API for IP geolocation and threat intelligence. The open-source Community Edition includes an optional IP enrichment pack (2,000 free API requests/month). For high-volume needs, contact tirreno for Enterprise options. See [tirreno.com](https://www.tirreno.com) for pricing details.
 
 ### Integration planning
 
-Before implementing tirreno, analyze your application to determine optimal integration points. This section helps you identify what to track based on your product type and security goals.
-
 > **Intranet Edition:** For internal applications we recommend to use existing integrations. Check the list of available integrations or contact tirreno at team@tirreno.com for further details.
 
-#### Step 1: Identify challenges and business impact
+#### What to track
 
-Start by documenting your security challenges and their business impact:
+| Fraud Vector | How tirreno Detects | Events |
+|--------------|---------------------|--------|
+| Stolen credentials | Multiple IPs, unusual locations | `account_login`, `account_login_fail` |
+| Account sharing | Concurrent sessions, device changes | `page_view`, `account_login` |
+| Fake accounts | Disposable emails, VPN/proxy | `account_registration` |
+| Data scraping | High volume, bot signatures | `page_view`, `page_search` |
+| Privilege abuse | Off-hours, sensitive operations | `account_edit`, `field_edit` |
 
-| Challenge | Business Impact | Priority |
-|-----------|-----------------|----------|
-| Account takeover | Customer trust loss, support costs, liability | Critical |
-| Credential stuffing | Service disruption, infrastructure costs | High |
-| Fraudulent registrations | Spam, abuse, wasted resources | High |
-| Insider threats | Data breaches, compliance violations | Medium |
-| Bot abuse | API costs, degraded performance | Medium |
+#### Where to integrate
 
-#### Step 2: Map fraud vectors to tirreno features
-
-| Fraud Vector | tirreno Detection | Events to Track |
-|--------------|-------------------|-----------------|
-| Stolen credentials | Multiple IPs per account, unusual locations | `account_login`, `account_login_fail` |
-| Account sharing | Concurrent sessions, device patterns | `page_view`, `account_login` |
-| Fake accounts | Disposable emails, VPN/proxy usage | `account_registration` |
-| Data scraping | High request volume, bot signatures | `page_view`, `page_search` |
-| Privilege abuse | Off-hours access, sensitive operations | `account_edit`, `field_edit` |
-| Payment fraud | New device + high-value transaction | `page_view` with payment URLs |
-
-#### Step 3: Review user journey and identify integration points
-
-Map your user journey and mark where security events occur:
-
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ Registration│───▶│    Login    │───▶│  App Usage  │───▶│   Logout    │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-       │                  │                  │                  │
-       ▼                  ▼                  ▼                  ▼
-  account_         account_login      page_view          account_
-  registration     account_login_fail page_edit          logout
-                                      page_search
-                                      field_edit
-```
-
-**Critical integration points (minimum):**
-- User authentication (login/logout)
+**Minimum:**
+- Login/logout
 - Failed login attempts
-- Account registration
+- Registration
 - Password/email changes
 
-**Recommended integration points:**
-- All authenticated page views
+**Recommended:**
+- Authenticated page views
 - Search queries
 - Data modifications
 - File downloads/exports
-- Administrative actions
+- Admin actions
 
-#### Step 4: Data collection checklist
+#### Data you need
 
-Before implementation, confirm you can collect:
-
-| Data Point | Source | Required |
-|------------|--------|----------|
-| User ID | Your auth system | Yes |
+| Data | Source | Required |
+|------|--------|----------|
+| User ID | Auth system | Yes |
 | IP address | Request headers | Yes |
-| URL/endpoint | Request path | Yes |
+| URL | Request path | Yes |
 | Timestamp | Server time (UTC) | Yes |
 | Email | User profile | Recommended |
-| User agent | Request headers | Recommended |
-| HTTP method | Request | Optional |
-| Referrer | Request headers | Optional |
+| User agent | Headers | Recommended |
 
-#### Step 5: Technical considerations
+#### Technical notes
 
 **Performance:**
 - Use async/non-blocking HTTP calls
@@ -817,7 +779,7 @@ $tracker->setUserAgent(substr($_SERVER['HTTP_USER_AGENT'], 0, 50));
 
 ### Send all logged-in user events
 
-Track every page view and action from authenticated users to build comprehensive behavior profiles.
+Track page views and actions from authenticated users.
 
 **PHP:**
 ```php
