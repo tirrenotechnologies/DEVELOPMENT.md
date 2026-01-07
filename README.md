@@ -1457,7 +1457,7 @@ tirreno includes standard detection rules organized by category:
 Custom rules are placed in `assets/rules/custom/` with filenames `X01.php`, `X02.php`, etc.
 
 Each rule must:
-* Use namespace `CustomRules`
+* Use namespace `Tirreno\CustomRules`
 * Extend `\Assets\Rule`
 * Define constants: `NAME`, `DESCRIPTION`, `ATTRIBUTES`
 * Implement `defineCondition()` method
@@ -1937,9 +1937,9 @@ Follow the tirreno Model pattern:
 ```php
 <?php
 declare(strict_types=1);
-namespace Models;
+namespace Tirreno\Models;
 
-class Device extends \Models\BaseSql {
+class Device extends \Tirreno\Models\BaseSql {
     protected $DB_TABLE_NAME = 'event_device';
 
     public function getFullDeviceInfoById(int $deviceId, int $apiKey): array {
