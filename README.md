@@ -33,7 +33,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 * Here is an overview of the [tirreno system architecture](#tirreno-system-architecture)
 * Here is an overview of the tirreno [coding standards](#contributing)
-* Here is [administration guide](https://github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md) 
+* Here is [administration guide](https://github.com/tirrenotechnologies/ADMIN.md) 
 
 * Here is an overview of [how to customize tirreno](#risk-rules--customization) for your needs
 * The easiest way to get started on development is documented in [local development setup](#local-development-setup)
@@ -2288,7 +2288,7 @@ Before submitting a pull request:
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
 | Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
-| Administration guide | [github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md](https://github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md) |
+| Administration guide | [github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
 | Docker Hub | [hub.docker.com/r/tirreno/tirreno](https://hub.docker.com/r/tirreno/tirreno) |
