@@ -6,21 +6,21 @@ Crash course for new tirreno developers
 
 ## Welcome
 
-Welcome and thank you for your interest in [tirreno security analytics](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
+Welcome and thank you for your interest in [tirreno safety platform](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
 
 tirreno is available in three editions:
 
 - **Community Edition** (open-source): For developer teams that want to add a security layer to self-hosted applications. Get started today without getting into complex business relationships. Licensed under GNU Affero General Public License v3 (AGPL-3.0).
 
-- **Intranet Edition**: Protects your organization's internal applications from account threats, ensures audit trails and field history for compliance, detects data exfiltration and insider threats.
+- **Application Edition**: Protects your organization's internal applications from account threats, ensures audit trails and field history for compliance, detects data exfiltration and insider threats.
 
-- **Enterprise Edition**: Built for client portals, SaaS, public sector portals, and digital platforms. Multi-application support, fraud and abuse prevention, and dedicated assistance for your SOC, product, and risk teams.
+- **Platform Edition**: Built for client portals, SaaS, public sector portals, and digital platforms. Multi-application support, fraud and abuse prevention, and dedicated assistance for your SOC, product, and risk teams.
 
-For Intranet and Enterprise editions, contact team@tirreno.com.
+For Application and Platform editions, contact team@tirreno.com.
 
 ```
-     Community ──────────────► Intranet ──────────────► Enterprise
-     Edition                   Edition                  Edition
+     Community ──────────────► Application ────────────► Platform
+       Edition                    Edition                  Edition
          │                         │                         │
          ▼                         ▼                         ▼
     Personal apps             Internal apps            External-facing
@@ -33,6 +33,8 @@ Here is some basic information for new developers to get up and running quickly:
 
 * Here is an overview of the [tirreno system architecture](#tirreno-system-architecture)
 * Here is an overview of the tirreno [coding standards](#contributing)
+* Here is [administration guide](https://github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md) 
+
 * Here is an overview of [how to customize tirreno](#risk-rules--customization) for your needs
 * The easiest way to get started on development is documented in [local development setup](#local-development-setup)
 * Contributed code should be released under the GNU Affero General Public License v3 (AGPL-3.0)
@@ -100,7 +102,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 ### Introduction
 
-tirreno is a PHP/PostgreSQL application using Fat-Free Framework (F3). Lightweight MVC for security analytics and threat detection.
+tirreno is a PHP/PostgreSQL application using Fat-Free Framework (F3). Lightweight MVC for safety analytics, security analytics and threat detection.
 
 ### Overview
 
@@ -199,7 +201,7 @@ tirreno/
 │   └── Views/                  # View helpers
 │
 ├── assets/                     # Static assets and rules
-│   ├── rules/                  # Security rules engine
+│   ├── rules/                  # Rules engine
 │   │   ├── core/               # Core rule definitions
 │   │   └── custom/             # Custom rule definitions
 │   ├── lists/                  # Suspicious pattern lists
@@ -524,7 +526,7 @@ tirreno tracks per-user metrics: devices per day, IPs per day, sessions, events 
 
 ### Integration planning
 
-> **Intranet Edition:** For internal applications we recommend to use existing integrations. Check the list of available integrations or contact tirreno at team@tirreno.com for further details.
+> **Application Edition:** For internal applications we recommend to use existing integrations. Check the list of available integrations or contact tirreno at team@tirreno.com for further details.
 
 #### What to track
 
@@ -1612,7 +1614,7 @@ From Session context:
 | `event_session_multiple_device` | bool | Device changed within 30 min |
 | `event_session_night_time` | bool | Activity between midnight and 5 AM |
 
-#### Email attributes (Enterprise Edition only)
+#### Email attributes (Platform Edition only)
 
 Last Email Attributes (le_):
 | Attribute | Type | Description |
@@ -1652,7 +1654,7 @@ Email Attributes (ee_):
 | `ee_earliest_breach` | array | Earliest breach dates per email |
 | `ee_days_since_first_breach` | int | Days since earliest known breach (-1 if none) |
 
-#### Domain attributes (Enterprise Edition only)
+#### Domain attributes (Platform Edition only)
 
 Last Domain Attributes (ld_):
 | Attribute | Type | Description |
@@ -1675,7 +1677,7 @@ Derived last domain attributes:
 | `ld_domain_without_mx_record` | bool | Domain has no MX record |
 | `ld_website_is_disabled` | bool | Domain website is disabled |
 
-#### Phone attributes (Enterprise Edition only)
+#### Phone attributes (Platform Edition only)
 
 From Phone context (ep_):
 | Attribute | Type | Description |
@@ -1786,6 +1788,8 @@ const MAX_STRING_LENGTH_FOR_PHONE = 17;
 ## Contributing
 
 This section is for developers who want to contribute code to the tirreno project. If you only want to customize tirreno for your own use (custom rules, pattern lists, UI constants), see the [Risk rules & customization](#risk-rules--customization) section above.
+
+> **Notice:** Submissions using generative AI will be rejected. Submissions from AI chatbots will result in the account being banned.
 
 ### Source code
 
@@ -2284,6 +2288,7 @@ Before submitting a pull request:
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
 | Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
+| Administration guide | [github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md](https://github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
 | Docker Hub | [hub.docker.com/r/tirreno/tirreno](https://hub.docker.com/r/tirreno/tirreno) |
