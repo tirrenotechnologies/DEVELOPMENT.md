@@ -1459,8 +1459,8 @@ tirreno includes standard detection rules organized by category:
 Custom rules are placed in `assets/rules/custom/` with filenames `X01.php`, `X02.php`, etc.
 
 Each rule must:
-* Use namespace `Tirreno\CustomRules`
-* Extend `\Assets\Rule`
+* Use namespace `Tirreno\Rules\Custom`
+* Extend `\Tirreno\Assets\Rule`
 * Define constants: `NAME`, `DESCRIPTION`, `ATTRIBUTES`
 * Implement `defineCondition()` method
 
