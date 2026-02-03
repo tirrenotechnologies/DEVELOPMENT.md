@@ -6,7 +6,7 @@ Crash course for new tirreno developers
 
 ## Welcome
 
-Welcome and thank you for your interest in [tirreno safety platform](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
+Welcome and thank you for your interest in [tirreno open-source security framework](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
 
 tirreno is available in three editions:
 
@@ -69,12 +69,13 @@ Here is some basic information for new developers to get up and running quickly:
    - [Testing your integration](#testing-your-integration)
 
 4. [Risk rules & customization](#risk-rules--customization)
+   - [Rule presets](#rule-presets)
+   - [Rule organization](#rule-organization)
    - [Built-in rules](#built-in-rules)
    - [Developing custom rules](#developing-custom-rules)
    - [Ruler operators reference](#ruler-operators-reference)
    - [Rule context attributes](#rule-context-attributes)
    - [Suspicious pattern lists](#suspicious-pattern-lists)
-   - [UI constants](#ui-constants)
 
 5. [Contributing](#contributing)
    - [Source code](#source-code)
@@ -141,6 +142,15 @@ Hardware: 512 MB RAM for PostgreSQL (4 GB recommended), ~3 GB storage per 1M eve
 
 ```
 tirreno/
+│
+├── .github/                    # GitHub configuration
+│   ├── workflows/              # CI/CD workflows
+│   │   └── ci.yml              # Continuous integration
+│   └── actions/                # Custom GitHub actions
+│
+├── tests/                      # Test suites
+│   ├── Unit/                   # Unit tests
+│   └── Support/                # Test support files
 │
 ├── app/                        # Application code
 │   ├── Assets/                 # Rule base classes
@@ -245,6 +255,8 @@ tirreno/
 │   │   │   ├── chart/          # Chart components (uPlot)
 │   │   │   ├── panel/          # Detail panel components
 │   │   │   ├── choices/        # Filter components (Choices.js)
+│   │   │   ├── details/        # Detail view components
+│   │   │   ├── popup/          # Popup/modal components
 │   │   │   ├── utils/          # Utility modules
 │   │   │   │   ├── Constants.js
 │   │   │   │   ├── String.js
@@ -256,7 +268,9 @@ tirreno/
 │   │       ├── uPlot-1.6.18/
 │   │       ├── choices-10.2.0/
 │   │       ├── jvectormap-2.0.5/
-│   │       └── tooltipster-master-4.2.8/
+│   │       ├── tooltipster-master-4.2.8/
+│   │       ├── accept-language-parser-1.5.0/
+│   │       └── devbridge-jquery-autocomplete-1.5.0/
 │   └── templates/              # HTML templates
 │       ├── layout.html         # Base layout
 │       ├── pages/              # Page templates
@@ -452,22 +466,6 @@ Api-Key: YOUR_API_KEY
     "blacklisted": false
 }
 ```
-
-#### Rate limiting
-
-tirreno uses a leaky bucket algorithm to prevent API abuse. Default limits:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `LEAKY_BUCKET_RPS` | `5` | Maximum requests per second |
-| `LEAKY_BUCKET_WINDOW` | `5` | Time window in seconds |
-
-When rate limit is exceeded, the API returns HTTP `429 Too Many Requests`. Configure limits in `config/config.ini` or via environment variables.
-
-**Best practices:**
-- Implement exponential backoff when receiving 429 responses
-- Queue events and send in batches during high traffic
-- Set appropriate timeouts (3-5 seconds recommended)
 
 #### Error responses
 
@@ -1302,11 +1300,69 @@ curl -X POST https://your-tirreno.com/sensor/ \
 
 tirreno is designed to be customized for your specific security needs. No CLA or pull request is required for local modifications.
 
-The three main customization points are:
+The two main customization points are:
 
 1. **Custom rules** Create detection rules based on user behavior
 2. **Suspicious pattern lists** Adjust URL, user agent, and email pattern detection
-3. **UI constants** Configure display thresholds and visual settings
+
+### Rule presets
+
+tirreno includes pre-configured rule sets for common security scenarios. Presets provide a quick starting point—select one from the **Rules** page dropdown and click **Apply**.
+
+| Preset | Use Case |
+|--------|----------|
+| `default` | Empty rules (start from scratch) |
+| `account_takeover` | Detect compromised accounts via new devices, locations, password changes |
+| `credential_stuffing` | Detect automated login attempts and brute force attacks |
+| `content_spam` | Detect spam content and suspicious posting patterns |
+| `account_registration` | Protect registration from fake accounts and bots |
+| `fraud_prevention` | General fraud detection across multiple vectors |
+| `insider_threat` | Detect unusual employee behavior and data exfiltration |
+| `bot_detection` | Identify automated traffic and crawlers |
+| `dormant_account` | Monitor reactivation of long-inactive accounts |
+| `multi_accounting` | Detect users with multiple accounts |
+| `promo_abuse` | Detect promotional code and offer abuse |
+| `api_protection` | Protect APIs from abuse and scanning |
+| `high_risk_regions` | Flag traffic from high-fraud geographic regions |
+
+Each preset assigns weights to specific rules. You can customize the weights after applying a preset.
+
+**Rule weights:**
+
+| Weight | Value | Effect on Risk Score |
+|--------|-------|---------------------|
+| Positive | -20 | Decreases risk (trusted behavior) |
+| None | 0 | Rule disabled |
+| Medium | 10 | Moderate risk increase |
+| High | 20 | Significant risk increase |
+| Extreme | 70 | Major risk increase |
+
+### Rule organization
+
+Rules are organized by **namespace** (core vs custom) and **category** (prefix letter).
+
+**Namespaces:**
+
+| Namespace | Directory | Description |
+|-----------|-----------|-------------|
+| `\Tirreno\Rules\Core` | `assets/rules/core/` | Built-in rules (109 rules) |
+| `\Tirreno\Rules\Custom` | `assets/rules/custom/` | Your custom rules |
+
+**Rule categories by prefix:**
+
+| Prefix | Category | Example |
+|--------|----------|---------|
+| A | Account takeover | A01–A08 |
+| B | Behaviour | B01–B26 |
+| C | Country | C01–C16 |
+| D | Device | D01–D10 |
+| E | Email | E01–E30 |
+| I | IP | I01–I12 |
+| P | Phone | P01–P04 |
+| R | Reuse/Blacklist | R01–R03 |
+| X | Custom/Extra | X01, X02, ... |
+
+Custom rules must use the `X` prefix (e.g., `X01.php`, `X02.php`). Core rule prefixes (A–R) are reserved.
 
 ### Built-in rules
 
@@ -1464,11 +1520,70 @@ Each rule must:
 * Define constants: `NAME`, `DESCRIPTION`, `ATTRIBUTES`
 * Implement `defineCondition()` method
 
+#### Example rule
+
+See `assets/rules/custom/X03.example.php` for a complete example:
+
+```php
+<?php
+
+namespace Tirreno\Rules\Custom;
+
+class X03 extends \Tirreno\Assets\Rule {
+    public const NAME = '1xx user name';
+    public const DESCRIPTION = 'Username starts with digit 1.';
+    public const ATTRIBUTES = [];
+
+    protected function defineCondition() {
+        return $this->rb->logicalAnd(
+            $this->rb['extra_one_digit_userid']->equalTo(true),
+        );
+    }
+}
+```
+
+#### Custom context
+
+For rules that need custom data, create a Context class in `assets/rules/custom/Context.php`. See `Context.example.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Tirreno\Rules\Custom;
+
+class Context extends \Tirreno\Assets\Context {
+    protected $DB_TABLE_NAME = 'event_account';
+    protected $uniqueValues = false;
+
+    public function expandContext(array &$extraData, array &$user): void {
+        // Add custom attributes to $user array
+        $user['extra_one_digit_userid'] = substr(($extraData['extra_userid'][0][0] ?? ' '), 0, 1) === '1';
+    }
+
+    protected function getDetails(array $accountIds, int $apiKey): array {
+        [$params, $placeHolders] = $this->getRequestParams($accountIds, $apiKey);
+
+        $query = (
+            "SELECT
+                event_account.id      AS id,
+                event_account.userid  AS extra_userid
+            FROM event_account
+            WHERE event_account.id IN ({$placeHolders})
+              AND event_account.key = :api_key"
+        );
+
+        return $this->execQuery($query, $params);
+    }
+}
+```
+
 #### Testing rules
 
 1. **Refresh rules:** After creating or modifying rules, go to the Rules page and click **Refresh** at the bottom of the page to apply your changes
 2. **Test a rule:** Select a rule and click the **Play** button (▷) to see how many users are triggered by the rule
-3. **Match rate:** The percentage shown indicates how many users match the rule (e.g., "22%" means 22% of users trigger this rule)
+3. **Match rate:** The percentage shown indicates how many users from 1000 match the rule (e.g., "22%" means 22% of 1000 users trigger this rule)
 
 ### Ruler operators reference
 
@@ -1739,61 +1854,27 @@ To add patterns:
 | `user-agent.php` | Bot signatures, scanner identifiers, SQL injection attempts |
 | `email.php` | `'spam'`, `'test'`, `'dummy'`, `'123'`, `'000'` |
 
-### UI constants
-
-Configure display thresholds, colors, and string lengths in `ui/js/parts/utils/Constants.js`.
-
-**Trust score thresholds:**
-```javascript
-const USER_LOW_TRUST_SCORE_INF    = 0;
-const USER_LOW_TRUST_SCORE_SUP    = 33;
-const USER_MEDIUM_TRUST_SCORE_INF = 33;
-const USER_MEDIUM_TRUST_SCORE_SUP = 67;
-const USER_HIGH_TRUST_SCORE_INF   = 67;
-```
-
-**Critical value thresholds:**
-```javascript
-const USER_IPS_CRITICAL_VALUE       = 9;       // Flag users with 9+ IPs
-const USER_EVENTS_CRITICAL_VALUE    = Infinity; // No limit for events
-const USER_DEVICES_CRITICAL_VALUE   = 4;       // Flag users with 4+ devices
-const USER_COUNTRIES_CRITICAL_VALUE = 3;       // Flag users from 3+ countries
-```
-
-**Color scheme:**
-```javascript
-const COLOR_RED    = '#FB6E88';  // High risk
-const COLOR_GREEN  = '#01EE99';  // Low risk
-const COLOR_YELLOW = '#F5B944';  // Medium risk
-const COLOR_PURPLE = '#BE95EB';  // Special status
-
-// Light variants (for backgrounds)
-const COLOR_LIGHT_GREEN  = 'rgba(64,220,97,0.03)';
-const COLOR_LIGHT_YELLOW = 'rgba(225,224,137,0.03)';
-const COLOR_LIGHT_RED    = 'rgba(255,51,102,0.03)';
-const COLOR_LIGHT_PURPLE = 'rgba(190,149,235,0.03)';
-```
-
-**String length limits:**
-```javascript
-const MAX_STRING_LENGTH_IN_TABLE = 18;
-const MAX_STRING_LENGTH_URL = 32;
-const MAX_TOOLTIP_LENGTH = 121;
-const MAX_STRING_LENGTH_FOR_EMAIL = 14;
-const MAX_STRING_LENGTH_FOR_PHONE = 17;
-```
-
 ---
 
 ## Contributing
 
-This section is for developers who want to contribute code to the tirreno project. If you only want to customize tirreno for your own use (custom rules, pattern lists, UI constants), see the [Risk rules & customization](#risk-rules--customization) section above.
+This section is for developers who want to contribute code to the tirreno project. If you only want to customize tirreno for your own use (custom rules, pattern lists), see the [Risk rules & customization](#risk-rules--customization) section above.
 
 > **Notice:** Submissions using generative AI will be rejected. Submissions from AI chatbots will result in the account being banned.
 
 ### Source code
 
 The source code is maintained at: https://github.com/tirrenotechnologies/tirreno
+
+### Before you start
+
+Most issues in the tirreno issue tracker are ideas and bugs that the team would like to implement or solve. However, this is not always the case — the team may no longer be interested in some issues even though they remain open.
+
+Before you spend time working on a bug or feature (and risk it not being merged), it is highly recommended that you first leave a comment on the issue explaining that you are interested in contributing. In your comment, also explain how you plan to solve the bug or implement the new feature, and ask for a quick validation of your approach.
+
+This gives the tirreno team the opportunity to review your proposal, confirm whether they want to see it added, and provide early guidance. The team will reply in the issue, and once they confirm, you can confidently work towards opening a Pull Request.
+
+If no existing issue matches your idea, create a new issue first and wait for team feedback before starting development.
 
 ### Contributor license agreement (CLA)
 
@@ -1841,7 +1922,7 @@ rm -rf install/
 
 # 7. Setup cron job
 crontab -e
-# Add: */10 * * * * /usr/bin/php /path/to/tirreno/index.php /cron
+# Add: */10 * * * * /usr/bin/php /absolute/path/to/tirreno/index.php /cron
 
 # 8. Create admin account at /signup/
 ```
@@ -1883,7 +1964,7 @@ volumes:
 
 Run: `docker compose up -d`
 
-Access http://localhost:8585/install/, use `tirreno-db` as host, `tirreno`/`secret` for credentials.
+Access `http://localhost:8585/install/` and use database URL `postgresql://tirreno:secret@tirreno-db:5432/tirreno`.
 
 **Manual Docker:**
 
@@ -2258,7 +2339,7 @@ if ($device->lastseen < $lastSync) {
 
 ### Commit messages
 
-Write [good commit messages](https://chris.beams.io/posts/git-commit/). Follow these guidelines:
+Write good commit messages. Follow these guidelines:
 
 Format: `<type>: <subject>`. Types: Add, Fix, Update, Remove, Refactor, Docs
 
@@ -2288,7 +2369,7 @@ Before submitting a pull request:
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
 | Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
-| Administration guide | [github.com/tirrenotechnologies/DEVELOPMENT.md/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
+| Administration guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
 | Docker Hub | [hub.docker.com/r/tirreno/tirreno](https://hub.docker.com/r/tirreno/tirreno) |
@@ -2311,12 +2392,12 @@ If you have found a mistake in the documentation, no matter how large or small, 
 
 ## License
 
-tirreno is licensed under the **GNU Affero General Public License v3 (AGPL-3.0)**.
+tirreno and this documentation are licensed under the **GNU Affero General Public License v3 (AGPL-3.0)**.
 
 The name "tirreno" is a registered trademark of tirreno technologies sàrl.
 
 ---
 
-*tirreno Copyright (C) 2025 tirreno technologies sàrl, Vaud, Switzerland.*
+*tirreno Copyright (C) 2026 tirreno technologies sàrl, Vaud, Switzerland.*
 
 't'
