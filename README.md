@@ -1,4 +1,4 @@
-# tirreno for developers
+<img width="1099" height="334" alt="image" src="https://github.com/user-attachments/assets/461e92e1-5d62-4228-920d-da078508646a" /># tirreno for developers
 
 Crash course for new tirreno developers
 
@@ -1927,7 +1927,11 @@ crontab -e
 
 #### Docker setup
 
-`docker-compose.yml`:
+**One line:**
+
+`curl -sL tirreno.com/t.yml | docker compose -f - up -d`
+
+**Compose:**
 
 ```yaml
 services:
