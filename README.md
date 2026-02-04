@@ -1,4 +1,4 @@
-<img width="1099" height="334" alt="image" src="https://github.com/user-attachments/assets/461e92e1-5d62-4228-920d-da078508646a" /># tirreno for developers
+# tirreno for developers
 
 Crash course for new tirreno developers
 
