@@ -2,9 +2,7 @@
 
 Crash course for new tirreno developers
 
----
-
-## Welcome
+### Welcome
 
 Welcome and thank you for your interest in [tirreno open-source security framework](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
 
