@@ -29,7 +29,7 @@ For Application and Platform editions, contact team@tirreno.com.
 
 Here is some basic information for new developers to get up and running quickly:
 
-* Here is an overview of the [tirreno system architecture](#tirreno-system-architecture)
+* Here is an overview of the [system architecture](#system-architecture)
 * Here is an overview of the tirreno [coding standards](#contributing)
 * Here is [administration guide](https://github.com/tirrenotechnologies/ADMIN.md) 
 
