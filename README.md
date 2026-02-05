@@ -17,8 +17,8 @@ tirreno is available in three editions:
 For Application and Platform editions, contact team@tirreno.com.
 
 ```
-     Community ──────────────► Application ────────────► Platform
-       Edition                    Edition                  Edition
+     Community                  Application              Platform
+     Edition                    Edition                  Edition
          │                         │                         │
          ▼                         ▼                         ▼
     Personal apps             Internal apps            External-facing
@@ -77,6 +77,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 5. [Contributing](#contributing)
    - [Source code](#source-code)
+   - [Before you start](#before-you-start)
    - [Contributor license agreement (CLA)](#contributor-license-agreement-cla)
    - [Git workflow](#git-workflow)
    - [Local development setup](#local-development-setup)
@@ -97,7 +98,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 ---
 
-## tirreno system architecture
+## System architecture
 
 ### Introduction
 
@@ -601,11 +602,7 @@ When integrating tirreno, follow these security best practices:
 
 > **Important:** tirreno must be integrated on the backend only. Never send events from frontend JavaScript or mobile apps. Client-side code can be inspected, modified, or bypassed entirely — attackers could disable tracking, forge events, or extract your API key. Backend integration ensures event data cannot be tampered with and your API credentials remain secure.
 
-The fastest way to integrate tirreno is using an official tracker library:
-
-- [PHP Tracker](https://github.com/tirrenotechnologies/tirreno-php-tracker)
-- [Python Tracker](https://github.com/tirrenotechnologies/tirreno-python-tracker)
-- [Node.js Tracker](https://github.com/tirrenotechnologies/tirreno-nodejs-tracker)
+The fastest way to integrate tirreno is using an official tracker library.
 
 **cURL (raw API):**
 ```bash
