@@ -2306,6 +2306,7 @@ Before submitting a pull request:
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
 | Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
+| Resource center | [tirreno.com/bat](https://www.tirreno.com/bat/) |
 | Administration guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
