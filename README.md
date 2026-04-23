@@ -1873,7 +1873,7 @@ If no existing issue matches your idea, create a new issue first and wait for te
 
 ### Contributor license agreement (CLA)
 
-Before your contributions can be accepted, you must sign the tirreno Contributor License Agreement (CLA). All contributed code is dual-licensed: AGPL-3.0 for open source use and a separate enterprise license for commercial use. Contact team@tirreno.com for the CLA document.
+Before your contributions can be accepted, you must sign the [tirreno Contributor License Agreement (CLA)](https://www.tirreno.com/cla/). All contributed code is dual-licensed: AGPL-3.0 for open source use and a separate enterprise license for commercial use. 
 
 ### Git workflow
 
