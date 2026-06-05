@@ -102,16 +102,16 @@ Here is some basic information for new developers to get up and running quickly:
 
 ### Introduction
 
-tirreno is a PHP/PostgreSQL application using Fat-Free Framework (F3). Lightweight MVC for safety analytics, security analytics and threat detection.
+tirreno is a PHP/PostgreSQL application. Lightweight MVC for safety analytics, security analytics and threat detection.
 
 ### Overview
 
 ```
  ┌──────────┐      request       ┌─────────────────┐      POST /sensor/       ┌─────────────────┐
  │   User   │ ─────────────────▶ │    Your App     │ ────────────────────────▶│    tirreno      │
- └──────────┘                    │  (allow/deny)   │◀──────────────────────── │  • Risk scoring │
-                                 └─────────────────┘      response            │  • Rule engine  │
-                                                                              │  • Blacklist    │
+ └──────────┘                    │  (allow/deny)   │◀──────────────────────── │  + Risk scoring │
+                                 └─────────────────┘      response            │  + Rule engine  │
+                                                                              │  + Blacklist    │
                                                                               └─────────────────┘
 ```
 
@@ -318,6 +318,8 @@ tirreno/
 
 ## API integration
 
+Event ingestion happens through sensors that collect the events, and they all get into the queue. Then, when the cron starts (in loop-until-drained), it defines the users that had actions since the last cron run, updates statistics, and calculates the context that is used by the active rules to determine a final risk score for each user.
+
 ### Official tracker libraries
 
 Use one of these:
@@ -465,28 +467,9 @@ Api-Key: YOUR_API_KEY
     "blacklisted": false
 }
 ```
+**Note:** Successful requests (2xx) return no response body.
 
-#### Error responses
-
-HTTP status codes returned by the API:
-
-| HTTP Code | Cause |
-|-----------|-------|
-| `200` | Success (no response body) |
-| `400` | Required field missing or invalid format |
-| `401` | `Api-Key` header missing or API key not found |
-| `429` | Rate limit exceeded |
-| `500` | Internal server error |
-| `503` | Database unavailable |
-
-**Validation error response (400):**
-```
-Validation error: "Required field is missing or empty" for key "ipAddress"
-```
-
-**Note:** Successful requests (200) return no response body.
-
-#### Logbook error types
+#### Logbook event types
 
 The Logbook page in tirreno dashboard tracks all API requests with these status codes:
 
@@ -496,7 +479,7 @@ The Logbook page in tirreno dashboard tracks all API requests with these status 
 | Validation warning | Event recorded with field corrections (e.g., truncated values) |
 | Critical validation error | Event rejected due to missing required fields |
 | Critical error | Server error, event not recorded |
-| Rate limit exceeded | Request rejected due to rate limiting |
+| Rate limit exceeded | Request rejected due to rate limiting (`LEAKY_BUCKET_RPS` & `LEAKY_BUCKET_WINDOW` in `/config/config.ini)|
 
 ---
 
