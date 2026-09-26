@@ -14,11 +14,11 @@ tirreno is available in three editions:
 
 - **White-label Edition**: White-label is for companies that want to offer anti-fraud, security or risk-management products built on tirreno framework to their clients under their own brand. tirreno runs on your infrastructure, or even in your edge product. 
 
-For Enterprise and White-lebel editions, contact team@tirreno.com.
+For Enterprise and White-label editions, contact team@tirreno.com.
 
 ```
-     Community                  Application              White-
-     Edition                    Edition                  lebel
+     Community                  Application               White-
+     Edition                    Edition                   label
          │                         │                         │
          ▼                         ▼                         ▼
     Personal apps             Internal/External        Embed & resell
