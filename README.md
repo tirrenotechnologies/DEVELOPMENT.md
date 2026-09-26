@@ -4,27 +4,27 @@ Crash course for new tirreno developers
 
 ### Welcome
 
-Welcome and thank you for your interest in [tirreno open-source security framework](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
+Welcome and thank you for your interest in tirreno [security framework](https://www.tirreno.com). The tirreno community is open and we welcome contributions of code and ideas.
 
 tirreno is available in three editions:
 
 - **Community Edition** (open-source): For developer teams that want to add a security layer to self-hosted applications. Get started today without getting into complex business relationships. Licensed under GNU Affero General Public License v3 (AGPL-3.0).
 
-- **Application Edition**: Protects your organization's internal applications from account threats, ensures audit trails and field history for compliance, detects data exfiltration and insider threats.
+- **Enterprise Edition**: Built for client portals, SaaS, public sector portals, and digital platforms. Fraud and abuse prevention, and dedicated assistance for your SOC, product, and risk teams.
 
-- **Platform Edition**: Built for client portals, SaaS, public sector portals, and digital platforms. Multi-application support, fraud and abuse prevention, and dedicated assistance for your SOC, product, and risk teams.
+- **White-label Edition**: White-label is for companies that want to offer anti-fraud, security or risk-management products built on tirreno framework to their clients under their own brand. tirreno runs on your infrastructure, or even in your edge product. 
 
-For Application and Platform editions, contact team@tirreno.com.
+For Enterprise and White-lebel editions, contact team@tirreno.com.
 
 ```
-     Community                  Application              Platform
-     Edition                    Edition                  Edition
+     Community                  Application              White-
+     Edition                    Edition                  lebel
          │                         │                         │
          ▼                         ▼                         ▼
-    Personal apps             Internal apps            External-facing
-    + Basic security          + Compliance             + Multi-app
-    + Development             + Audit trails           + Fraud/abuse
-    + No support              + Insider threats        + Dedicated support
+    Personal apps             Internal/External        Embed & resell
+    + Basic security          + Compliance             + New apps
+    + Development             + Fraud/abuse            + Devices
+    + No support              + Insider threats        + Resale rights
 ```
 
 Here is some basic information for new developers to get up and running quickly:
@@ -32,6 +32,7 @@ Here is some basic information for new developers to get up and running quickly:
 * Here is an overview of the [system architecture](#system-architecture)
 * Here is an overview of the tirreno [coding standards](#contributing)
 * Here is [administration guide](https://github.com/tirrenotechnologies/ADMIN.md) 
+* Here is [API reference](https://github.com/tirrenotechnologies/API.md) of the built-in `tirreno('…')` API used to build custom pages
 
 * Here is an overview of [how to customize tirreno](#risk-rules--customization) for your needs
 * The easiest way to get started on development is documented in [local development setup](#local-development-setup)
@@ -44,10 +45,11 @@ Here is some basic information for new developers to get up and running quickly:
 
 1. [System architecture](#tirreno-system-architecture)
    - [Introduction](#introduction)
-   - [Overview](#overview)
-   - [Technology stack](#technology-stack)
+   - [Overview](#overview)   
    - [System requirements](#system-requirements)
    - [Directory structure](#directory-structure)
+   - [Configuration reference](#configuration-reference)
+   - [Access control](#access-control)
 
 2. [API integration](#api-integration)
    - [Official tracker libraries](#official-tracker-libraries)
@@ -74,6 +76,7 @@ Here is some basic information for new developers to get up and running quickly:
    - [Ruler operators reference](#ruler-operators-reference)
    - [Rule context attributes](#rule-context-attributes)
    - [Suspicious pattern lists](#suspicious-pattern-lists)
+   - [Custom pages](#custom-pages)
 
 5. [Contributing](#contributing)
    - [Source code](#source-code)
@@ -102,38 +105,29 @@ Here is some basic information for new developers to get up and running quickly:
 
 ### Introduction
 
-tirreno is a PHP/PostgreSQL application. Lightweight MVC for safety analytics, security analytics and threat detection.
-
+tirreno is an open-source framework for building sovereign security, compliance and fraud prevention applications.
 ### Overview
 
 ```
- ┌──────────┐      request       ┌─────────────────┐      POST /sensor/       ┌─────────────────┐
- │   User   │ ─────────────────▶ │    Your App     │ ────────────────────────▶│    tirreno      │
- └──────────┘                    │  (allow/deny)   │◀──────────────────────── │  + Risk scoring │
-                                 └─────────────────┘      response            │  + Rule engine  │
-                                                                              │  + Blacklist    │
-                                                                              └─────────────────┘
+ ┌────────────┐      request       ┌─────────────────┐      POST /sensor/       ┌─────────────────┐
+ │   Entity   │ ─────────────────▶ │    Your App     │ ────────────────────────▶│    tirreno      │
+ └────────────┘                    │  (allow/deny)   │◀──────────────────────── │  + Risk scoring │
+                                   └─────────────────┘      response            │  + Rule engine  │
+                                                                                │  + Blacklist    │
+                                                                                └─────────────────┘
 ```
 
-Your application sends user events (logins, registrations, page views, field changes) to tirreno. tirreno analyzes the events, calculates risk scores, and can automatically blacklist suspicious users. Your app can query the blacklist API to block bad actors in real-time.
-
-### Technology stack
-
-Core dependencies (`composer.json`):
-
-| Dependency | What it does |
-|------------|--------------|
-| **bcosca/fatfree-core** | Fat-Free Framework (F3) |
-| **matomo/device-detector** | Device/browser/OS detection |
-| **ruler/ruler** | Rules engine |
-
-Dev tools: **phpstan** (static analysis), **php_codesniffer** (style)
+Your application sends entity events (logins, registrations, page views, field changes) to tirreno. tirreno analyzes the events, calculates risk scores, and can automatically blacklist suspicious entity. Your app can query the blacklist API to block bad actors in real-time.
 
 ### System requirements
 
-- **PHP** 8.0–8.3 with PDO_PGSQL, cURL, mbstring
+- **PHP** 8.0–8.3 with PDO_PGSQL, pgsql, cURL, mbstring
+- **PHP** `memory_limit` of at least 128 MB
 - **PostgreSQL** 12+
-- **Apache** with mod_rewrite
+- **Apache** with mod_rewrite and `.htaccess` support
+- Read/write permission for the `/config` directory (the installer writes `config/local/config.local.ini`)
+
+**Note:** PHP 8.0 is sufficient to run tirreno, but development requires PHP 8.1 or later: `composer.json` pins the platform to PHP 8.1.32, PHPUnit 10.5 requires PHP 8.1, and CI runs tests on PHP 8.1–8.3.
 
 Hardware: 512 MB RAM for PostgreSQL (4 GB recommended), ~3 GB storage per 1M events.
 
@@ -144,92 +138,123 @@ tirreno/
 │
 ├── .github/                    # GitHub configuration
 │   ├── workflows/              # CI/CD workflows
-│   │   └── ci.yml              # Continuous integration
+│   │   └── ci.yml              # PHPUnit, PHPStan, PHP_CodeSniffer
 │   └── actions/                # Custom GitHub actions
+│       └── setup-php/
 │
-├── tests/                      # Test suites
-│   ├── Unit/                   # Unit tests
-│   └── Support/                # Test support files
+├── tests/                      # Test suites (PHPUnit)
+│   ├── Unit/                   # Unit tests (Assets, Models, Rules, Utils)
+│   └── Support/                # Test doubles and helpers
 │
 ├── app/                        # Application code
-│   ├── Assets/                 # Rule base classes
-│   │   └── Rule.php            # Abstract Rule class
+│   ├── Assets/                 # Base classes for rules and custom context
+│   │   ├── Rule.php            # Abstract Rule class
+│   │   ├── Context.php         # Abstract custom Context class
+│   │   └── Constants.php
 │   │
 │   ├── Controllers/            # Request handlers
-│   │   ├── Admin/              # Admin panel controllers
-│   │   │   ├── Base/           # Base controller classes
-│   │   │   ├── Events/         # Events module
-│   │   │   ├── Rules/          # Rules module
-│   │   │   ├── Users/          # Users module
-│   │   │   └── ...             # Other admin modules
 │   │   ├── Api/                # API controllers
 │   │   │   ├── Blacklist.php   # Blacklist API
 │   │   │   └── Endpoint.php    # API endpoint handler
-│   │   ├── Pages/              # Page controllers
+│   │   ├── Pages/              # Page controllers (render pages)
+│   │   │   ├── Cron.php        # Cron entry point (/cron)
 │   │   │   ├── Login.php
 │   │   │   ├── Signup.php
+│   │   │   ├── Users.php
 │   │   │   └── ...
-│   │   ├── Cron.php            # Cron controller
+│   │   ├── Services/           # Page business logic
+│   │   │   ├── Context.php     # Rule context builder
+│   │   │   ├── Rules.php
+│   │   │   └── ...
+│   │   ├── Data.php            # AJAX data endpoints
 │   │   └── Navigation.php      # Navigation controller
+│   │
+│   ├── Core/                   # Core container, page classes and services
+│   │   ├── Container.php
+│   │   ├── Page.php
+│   │   ├── FileBasedPage.php   # Custom pages from assets/pages/
+│   │   └── Services/
 │   │
 │   ├── Crons/                  # Background job handlers
 │   │   ├── Base.php            # Base cron class
+│   │   ├── BaseQueue.php       # Base queue handler
 │   │   ├── BatchedNewEvents.php
 │   │   ├── EnrichmentQueueHandler.php
 │   │   ├── RiskScoreQueueHandler.php
 │   │   └── ...                 # Other cron jobs
 │   │
 │   ├── Dictionary/             # Internationalization (i18n)
+│   │   ├── en.php              # Dictionary entry point
 │   │   └── en/                 # English translations
+│   │       ├── Additional/     # Per-page translations loaded on demand
 │   │       ├── Pages/          # Page-specific translations
 │   │       ├── Parts/          # Component translations
+│   │       ├── Errors.php      # Error messages
 │   │       └── All.php         # Combined translations
+│   │
+│   ├── Entities/               # Entity objects (User, Ip, Device, Event, ...)
 │   │
 │   ├── Interfaces/             # PHP interfaces
 │   │   ├── ApiKeyAccessAuthorizationInterface.php
 │   │   ├── ApiKeyAccountAccessAuthorizationInterface.php
 │   │   └── FraudFlagUpdaterInterface.php
 │   │
-│   ├── Models/                 # Database models (extend BaseSql)
-│   │   ├── BaseSql.php         # Base class with execQuery()
+│   ├── Models/                 # Database models (extend Base)
+│   │   ├── Base.php            # Base class with execQuery()
 │   │   ├── Device.php          # Device/user-agent model
-│   │   ├── Grid/               # Grid data models
+│   │   ├── Api/                # API models
 │   │   ├── Chart/              # Chart data models
+│   │   ├── Context/            # Rule context data models
 │   │   ├── Enrichment/         # Enrichment models
+│   │   ├── Grid/               # Grid data models
+│   │   ├── Query/              # Query builder
+│   │   ├── Search/             # Global search models
+│   │   ├── TopTen/             # Dashboard top-ten models
+│   │   ├── UserDetails/        # Entity details models
 │   │   └── ...                 # Other models
 │   │
 │   ├── Updates/                # Database migration handlers
 │   │
 │   ├── Utils/                  # Utility classes
+│   │   ├── Assets/             # Loaders for rules, presets, pages, lists
+│   │   │   └── Lists/          # Built-in default pattern lists
+│   │   ├── Http/               # HTTP client
 │   │   ├── ApiKeys.php         # API key utilities
 │   │   ├── Constants.php       # Application constants
+│   │   ├── DictManager.php     # Additional dictionary loader
 │   │   ├── Logger.php          # Logging utilities
 │   │   ├── Rules.php           # Rule utilities
+│   │   ├── Variables.php       # Configuration/environment variables
 │   │   └── ...                 # Other utilities
 │   │
-│   └── Views/                  # View helpers
+│   └── Views/                  # Response renderers (Frontend, Json, Xml)
 │
-├── assets/                     # Static assets and rules
+├── assets/                     # Static assets, rules and customization points
+│   ├── dashboard/              # Dashboard constants
 │   ├── rules/                  # Rules engine
-│   │   ├── core/               # Core rule definitions
-│   │   └── custom/             # Custom rule definitions
+│   │   ├── core/               # Core rule definitions and presets
+│   │   └── custom/             # Custom rules, context and presets
 │   ├── lists/                  # Suspicious pattern lists
 │   │   ├── url.php             # URL attack patterns
 │   │   ├── user-agent.php      # User agent patterns
+│   │   ├── ai-bot.php          # AI agent/bot user agent substrings
+│   │   ├── asn.php             # Suspicious ASN numbers
 │   │   ├── email.php           # Email patterns
 │   │   └── file-extensions.php # File extension categories
-│   ├── logs/                   # Application logs
-│   └── ...                     # CSS, images
+│   ├── pages/                  # Custom pages
+│   │   └── views/              # Custom page templates
+│   └── logs/                   # Application logs
 │
 ├── config/                     # Configuration files
 │   ├── config.ini              # Main configuration
 │   ├── routes.ini              # Route definitions
 │   ├── apiEndpoints.ini        # API endpoint definitions
 │   ├── crons.ini               # Cron job configuration
-│   └── local/                  # Local overrides
+│   └── local/                  # Local overrides (config.local.ini)
 │
 ├── install/                    # Web-based installation wizard
-│   └── index.php               # DELETE AFTER INSTALLATION
+│   ├── index.php               # DELETE AFTER INSTALLATION
+│   └── install.sql             # Database schema
 │
 ├── libs/                       # Third-party libraries (vendor)
 │
@@ -250,6 +275,7 @@ tirreno/
 │   │   │   ├── Events.js       # Events page
 │   │   │   └── ...             # Other pages
 │   │   ├── parts/              # Reusable components
+│   │   │   ├── button/         # Action button components
 │   │   │   ├── grid/           # Data grid components
 │   │   │   ├── chart/          # Chart components (uPlot)
 │   │   │   ├── panel/          # Detail panel components
@@ -258,8 +284,12 @@ tirreno/
 │   │   │   ├── popup/          # Popup/modal components
 │   │   │   ├── utils/          # Utility modules
 │   │   │   │   ├── Constants.js
-│   │   │   │   ├── String.js
-│   │   │   │   └── Date.js
+│   │   │   │   ├── DataSource.js
+│   │   │   │   ├── Date.js
+│   │   │   │   ├── ErrorHandler.js
+│   │   │   │   ├── Event.js
+│   │   │   │   ├── Functions.js
+│   │   │   │   └── String.js
 │   │   │   └── ...             # Other components
 │   │   └── vendor/             # Third-party JS libraries
 │   │       ├── jquery-3.6.0/
@@ -272,37 +302,42 @@ tirreno/
 │   │       └── devbridge-jquery-autocomplete-1.5.0/
 │   └── templates/              # HTML templates
 │       ├── layout.html         # Base layout
+│       ├── internalTemplate.html  # Wrapper for logged-in pages
+│       ├── externalTemplate.html  # Wrapper for login/signup pages
 │       ├── pages/              # Page templates
-│       │   ├── admin/          # Admin page templates
-│       │   │   ├── events.html
-│       │   │   ├── ip.html
-│       │   │   ├── users.html
-│       │   │   └── ...
+│       │   ├── events.html
+│       │   ├── ip.html
+│       │   ├── users.html
 │       │   ├── login.html
 │       │   ├── signup.html
 │       │   └── ...
 │       ├── parts/              # Component templates
-│       │   ├── headerAdmin.html
-│       │   ├── footerAdmin.html
+│       │   ├── internalHeader.html
+│       │   ├── internalFooter.html
 │       │   ├── leftMenu.html
 │       │   ├── notification.html
 │       │   ├── forms/
+│       │   ├── home/
 │       │   ├── panel/
+│       │   ├── popups/
 │       │   ├── tables/
 │       │   ├── widgets/
 │       │   └── choices/
-│       └── snippets/           # Code snippets (PHP, Python, etc.)
+│       └── snippets/           # Code snippets (cURL, PHP, Python, Node.js)
 │
 ├── index.php                   # Application entry point
 ├── .htaccess                   # Apache URL rewriting rules
 ├── .profile                    # Environment profile
+├── .phpstorm.meta.php          # PhpStorm IDE metadata
+├── app.json                    # Platform deployment manifest
 ├── composer.json               # PHP dependencies
 ├── composer.lock               # Locked dependency versions
 ├── cron.json                   # Cron job definitions
 ├── phpcs.xml                   # PHP CodeSniffer configuration
+├── phpstan.neon                # PHPStan configuration
+├── phpunit.xml                 # PHPUnit configuration
 ├── eslint.config.js            # JavaScript linting configuration
 │
-├── AUTHORS.md                  # Project contributors
 ├── CHANGELOG.md                # Version history
 ├── CODE_OF_CONDUCT.md          # Community guidelines
 ├── LICENSE                     # AGPL-3.0 license
@@ -314,11 +349,51 @@ tirreno/
 └── robots.txt                  # Search engine directives
 ```
 
+### Configuration reference
+
+Main settings live in `config/config.ini`; local overrides go into `config/local/config.local.ini`. Environment variables with the same name take precedence for the settings below (see [Configuration via environment variables](#configuration-via-environment-variables)).
+
+Selected settings for developers:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `DEBUG` | `0` | Error detail level, see below |
+| `LOG_TO_STDOUT` | `false` | Also write log messages to stdout (useful in containers) |
+| `LOG_TO_DATABASE` | `false` | Store error records in the database (for requests of logged-in operators) |
+| `CHECK_RULE_USERS_LIMIT` | `1000` | Number of users evaluated when testing a rule on the Rules engine page |
+| `RECALCULATE_TOTALS_ON_VISIT` | `true` | Recalculate totals of the entities shown when a list page is opened |
+| `LEAKY_BUCKET_RPS` | `10` | Sensor rate limit: average allowed requests per second, per API key (`0` disables the limit) |
+| `LEAKY_BUCKET_WINDOW` | `20` | Sensor rate limit window in seconds: at most `LEAKY_BUCKET_RPS × LEAKY_BUCKET_WINDOW` requests are accepted within the last window (`0` disables the limit) |
+| `LOGBOOK_LIMIT` | `3000` | Number of logbook records kept per API key during logbook rotation |
+
+**Debug levels:**
+
+| Level | Behaviour |
+|-------|-----------|
+| `0` | Errors with file and line; warnings and info messages are logged |
+| `1` | Same as 0, plus debug messages |
+| `2` | Errors with stack trace; warnings, info and debug messages |
+| `3` | Errors with stack trace including function arguments; warnings, info and debug messages |
+
+The stack trace is shown on the error page only to logged-in operators.
+
+### Access control
+
+Since v0.10.0 tirreno uses role-based access control (RBAC). Operators are assigned roles, and roles grant permissions to pages.
+
+| Role | Default permissions |
+|------|---------------------|
+| `superuser` | All permissions, including `user_admin` (operator administration) |
+| `operator` | All page permissions (`page_view`, `page_edit`, `page_delete`, `page_publish`) except `user_admin`, on all pages except `/cron` |
+| `guest` | `page_view` and `page_edit` |
+
+Permissions are assigned per role and page (`dshb_roles_permissions`, `dshb_pages_permissions`).
+
 ---
 
 ## API integration
 
-Event ingestion happens through sensors that collect the events, and they all get into the queue. Then, when the cron starts (in loop-until-drained), it defines the users that had actions since the last cron run, updates statistics, and calculates the context that is used by the active rules to determine a final risk score for each user.
+Event ingestion happens through sensors that collect the events, and they all get into the queue. Then, when the cron starts (in loop-until-drained), it defines the users that had actions since the last cron run, updates statistics, and calculates the context that is used by the active rules to determine a final risk score for each entity.
 
 ### Official tracker libraries
 
@@ -344,6 +419,19 @@ Api-Key: YOUR_API_KEY
 
 **Note:** The API uses form-urlencoded format, not JSON.
 
+**Optional headers:**
+
+| Header | Description |
+|--------|-------------|
+| `X-Request-Id` | Trace ID (up to 36 characters) stored with the event, or with the rejected request if validation fails |
+
+**Command line:** the sensor can also be called from the CLI, passing the API key and event fields as long options:
+
+```bash
+php sensor/index.php --apiKey=YOUR_API_KEY --userName=user123 --ipAddress=203.0.113.50 \
+    --url=/login --eventTime="2024-12-08 14:30:00.000" --eventType=account_login
+```
+
 #### Required parameters
 
 | Parameter | Description |
@@ -351,7 +439,7 @@ Api-Key: YOUR_API_KEY
 | `userName` | Unique user ID (max 100 chars) |
 | `ipAddress` | IPv4/IPv6 address (invalid IPs default to `0.0.0.0`) |
 | `url` | URL path (max 2047 chars) |
-| `eventTime` | Timestamp `Y-m-d H:i:s.v` (defaults to current UTC if invalid) |
+| `eventTime` | UTC timestamp `Y-m-d H:i:s.v`; `Y-m-d H:i:s` and `Y-m-d H:i:s.u` are also accepted (defaults to current UTC time if missing or invalid) |
 
 #### Optional parameters
 
@@ -370,7 +458,7 @@ Api-Key: YOUR_API_KEY
 | `browserLanguage` | string | Detected browser language (max 255 chars) |
 | `eventType` | string | One of the event types listed below. Defaults to `page_view`, or `page_error` if httpCode >= 400 |
 | `userCreated` | string | User creation timestamp (`Y-m-d H:i:s` or `Y-m-d H:i:s.v`) |
-| `payload` | array | Event details for `page_search` events |
+| `payload` | array | Event details for `page_search` and `account_email_change` events |
 | `fieldHistory` | array | Field edit history for `field_edit` events |
 
 **Note:** Maximum length for all other parameters is 100 characters unless specified above. Parameters exceeding max length are truncated.
@@ -414,6 +502,22 @@ For `page_search` events:
 | `field_id` | Yes | Unique identifier for the search field |
 | `value` | Yes | The search query string |
 | `field_name` | No | Human-readable field name |
+
+For `account_email_change` events:
+```json
+{
+    "eventType": "account_email_change",
+    "payload": {
+        "new_value": "new@example.com",
+        "old_value": "old@example.com"
+    }
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `new_value` | Yes | The new email address |
+| `old_value` | No | The previous email address |
 
 #### Field history parameter
 
@@ -591,7 +695,7 @@ The fastest way to integrate tirreno is using an official tracker library.
 ```bash
 curl -X POST https://your-tirreno-instance.com/sensor/ \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "key=your-api-key" \
+  -H "Api-Key: your-api-key" \
   -d "userName=user123" \
   -d "emailAddress=user@example.com" \
   -d "ipAddress=192.168.1.100" \
@@ -1029,10 +1133,10 @@ Use tirreno's IP analysis combined with the blacklist API for automatic protecti
 
 Before implementing auto-ban, configure and test the threshold settings in tirreno:
 
-1. Go to **Rules** page in tirreno dashboard
+1. Go to the **Rules engine** page in tirreno dashboard
 2. Set **Manual review** threshold (e.g., 33) users below this score appear in review queue
 3. Set **Auto-blacklisting** threshold (e.g., 20) users below this score are automatically blacklisted
-4. Click **Update** to save settings
+4. Click **Update** in the **Thresholds settings** form to save settings
 
 #### Middleware for IP-based blocking
 
@@ -1061,6 +1165,8 @@ if (await blacklistService.isBlacklisted(ipAddress)) {
 ```
 
 ### Field audit trail
+
+Field changes appear on the **Field history** page of the tirreno dashboard.
 
 Track changes to important user fields for compliance, security, and regulatory requirements. The `fieldHistory` parameter allows you to send detailed change records.
 
@@ -1264,8 +1370,8 @@ curl -X POST https://your-tirreno.com/sensor/ \
    - Filter by endpoint, IP, or error messages using the search box
    - The chart shows request volume over time to identify traffic patterns
 
-3. **Check the Users page:**
-   - Navigate to **Users** to see the tracked user
+3. **Check the Entities page:**
+   - Navigate to **Entities** to see the tracked user
    - Verify the user details and events are correctly recorded
 
 4. **Verify event types:**
@@ -1276,7 +1382,7 @@ curl -X POST https://your-tirreno.com/sensor/ \
 
 ## Risk rules & customization
 
-tirreno is designed to be customized for your specific security needs. No CLA or pull request is required for local modifications.
+tirreno is designed to be customized for your specific security needs. 
 
 The two main customization points are:
 
@@ -1285,7 +1391,7 @@ The two main customization points are:
 
 ### Rule presets
 
-tirreno includes pre-configured rule sets for common security scenarios. Presets provide a quick starting point—select one from the **Rules** page dropdown and click **Apply**.
+tirreno includes pre-configured rule sets for common security scenarios. Presets provide a quick starting point—select one in the **Rules settings reset** form on the **Rules engine** page and click **Reset**. Applying a preset is irreversible: it replaces all current rule weights.
 
 | Preset | Use Case |
 |--------|----------|
@@ -1323,7 +1429,7 @@ Rules are organized by **namespace** (core vs custom) and **category** (prefix l
 
 | Namespace | Directory | Description |
 |-----------|-----------|-------------|
-| `\Tirreno\Rules\Core` | `assets/rules/core/` | Built-in rules (109 rules) |
+| `\Tirreno\Rules\Core` | `assets/rules/core/` | Built-in rules (112 rules) |
 | `\Tirreno\Rules\Custom` | `assets/rules/custom/` | Your custom rules |
 
 **Rule categories by prefix:**
@@ -1333,9 +1439,9 @@ Rules are organized by **namespace** (core vs custom) and **category** (prefix l
 | A | Account takeover | A01–A08 |
 | B | Behaviour | B01–B26 |
 | C | Country | C01–C16 |
-| D | Device | D01–D10 |
+| D | Device | D01–D13 |
 | E | Email | E01–E30 |
-| I | IP | I01–I12 |
+| I | IP | I01–I13 |
 | P | Phone | P01–P04 |
 | R | Reuse/Blacklist | R01–R03 |
 | X | Custom/Extra | X01, X02, ... |
@@ -1408,7 +1514,7 @@ tirreno includes standard detection rules organized by category:
 | C15 | UAE IP address | IP address located in United Arab Emirates |
 | C16 | Japan IP address | IP address located in Japan |
 
-#### Device (D01-D10)
+#### Device (D01-D13)
 | Rule | Name | Description |
 |------|------|-------------|
 | D01 | Device is unknown | User has manipulated device information |
@@ -1421,6 +1527,9 @@ tirreno includes standard detection rules organized by category:
 | D08 | Two or more phone devices | User accesses account using numerous phone devices |
 | D09 | Old browser | User accesses account using an old browser version |
 | D10 | Potentially vulnerable User-Agent | User made a request with suspicious User-Agent |
+| D11 | Empty User-Agent | User made a request with empty User-Agent |
+| D12 | Empty browser language | User made a request with empty browser language |
+| D13 | Device is AI bot | User made a request via AI bot (`assets/lists/ai-bot.php`) |
 
 #### Email (E01-E30)
 | Rule | Name | Description |
@@ -1457,7 +1566,7 @@ tirreno includes standard detection rules organized by category:
 
 **Note:** E18 is reserved for future use.
 
-#### IP (I01-I12)
+#### IP (I01-I13)
 | Rule | Name | Description |
 |------|------|-------------|
 | I01 | IP belongs to TOR | IP assigned to The Onion Router network |
@@ -1472,6 +1581,7 @@ tirreno includes standard detection rules organized by category:
 | I10 | Only residential IPs | User uses only residential IP addresses |
 | I11 | Single network | IP addresses belong to one network |
 | I12 | IP belongs to LAN | IP address belongs to local access network |
+| I13 | IP belongs to suspicious ASN | IP address belongs to ASN marked as suspicious (`assets/lists/asn.php`) |
 
 #### Phone (P01-P04)
 | Rule | Name | Description |
@@ -1496,7 +1606,9 @@ Each rule must:
 * Use namespace `Tirreno\Rules\Custom`
 * Extend `\Tirreno\Assets\Rule`
 * Define constants: `NAME`, `DESCRIPTION`, `ATTRIBUTES`
-* Implement `defineCondition()` method
+* Implement `defineCondition(): \Ruler\Operator\LogicalOperator` (the return type is required by the abstract parent method)
+
+Optionally, a rule can override `prepareParams(array $params): array` to compute additional values from the context before the condition is evaluated (see core rule `A03` for an example).
 
 #### Example rule
 
@@ -1512,7 +1624,7 @@ class X03 extends \Tirreno\Assets\Rule {
     public const DESCRIPTION = 'Username starts with digit 1.';
     public const ATTRIBUTES = [];
 
-    protected function defineCondition() {
+    protected function defineCondition(): \Ruler\Operator\LogicalOperator {
         return $this->rb->logicalAnd(
             $this->rb['extra_one_digit_userid']->equalTo(true),
         );
@@ -1532,8 +1644,8 @@ declare(strict_types=1);
 namespace Tirreno\Rules\Custom;
 
 class Context extends \Tirreno\Assets\Context {
-    protected $DB_TABLE_NAME = 'event_account';
-    protected $uniqueValues = false;
+    protected string $tableName = 'event_account';
+    protected ?bool $uniqueValues = false;
 
     public function expandContext(array &$extraData, array &$user): void {
         // Add custom attributes to $user array
@@ -1557,11 +1669,13 @@ class Context extends \Tirreno\Assets\Context {
 }
 ```
 
+**Note:** Property types must match the parent class: `$uniqueValues` is declared as `?bool` and `$tableName` as `string`. An untyped redeclaration causes a fatal error.
+
 #### Testing rules
 
-1. **Refresh rules:** After creating or modifying rules, go to the Rules page and click **Refresh** at the bottom of the page to apply your changes
+1. **Refresh rules:** After creating or modifying rules, go to the **Rules engine** page and click **Refresh** at the bottom of the page to apply your changes
 2. **Test a rule:** Select a rule and click the **Play** button (▷) to see how many users are triggered by the rule
-3. **Match rate:** The percentage shown indicates how many users from 1000 match the rule (e.g., "22%" means 22% of 1000 users trigger this rule)
+3. **Match rate:** The percentage shown indicates how many of the tested users match the rule (e.g., "22%" means 22% of the tested users trigger this rule). The number of users tested is set by `CHECK_RULE_USERS_LIMIT` in `config/config.ini` (default: 1000)
 
 ### Ruler operators reference
 
@@ -1674,7 +1788,9 @@ From Ip context:
 | `eip_shared` | int | Number of users sharing this IP |
 | `eip_domains_count_len` | int | Number of domains on IP |
 | `eip_unique_cidrs` | int | Number of unique network ranges |
+| `eip_asn` | array | ASNs of the user's IP addresses |
 | `eip_only_residential` | bool | All IPs are residential (derived) |
+| `eip_suspicious_asn` | bool | An IP belongs to an ASN listed in `assets/lists/asn.php` (derived) |
 
 #### Device attributes (eup_)
 
@@ -1695,6 +1811,9 @@ Derived device attributes:
 | `eup_has_rare_browser` | bool | User has uncommon browser |
 | `eup_has_rare_os` | bool | User has uncommon OS |
 | `eup_vulnerable_ua` | bool | User-Agent matches suspicious patterns |
+| `eup_empty_ua` | bool | A request was made with an empty User-Agent |
+| `eup_empty_lang` | bool | A request was made with an empty browser language |
+| `eup_ai_bot` | bool | Device matches an entry in `assets/lists/ai-bot.php` |
 
 #### Session attributes (event_session_)
 
@@ -1794,6 +1913,10 @@ Derived phone attributes:
 | `lp_invalid_phone` | bool | Phone number is invalid |
 | `ep_shared_phone` | bool | Phone is shared with other users |
 
+#### Rule-local attributes
+
+Some core rules compute additional values in their own `prepareParams()` method, for example `event_many_failed_login_attempts` (A01), `event_new_device_and_new_country` (A03), `eup_old_browser` (D09) or `lp_country_code_in_eip_country_id` (P02). These values exist only inside the rule that defines them and are **not** available to custom rules. To reuse such logic, compute the value in your own rule's `prepareParams()` or in a custom `Context` class.
+
 ### Suspicious pattern lists
 
 tirreno maintains lists of suspicious patterns in `assets/lists/`:
@@ -1802,10 +1925,14 @@ tirreno maintains lists of suspicious patterns in `assets/lists/`:
 |------|---------|
 | `url.php` | URL attack patterns (SQL injection, path traversal, etc.) |
 | `user-agent.php` | Suspicious user agent strings |
+| `ai-bot.php` | AI agent, assistant and crawler user agent substrings (used by rule D13) |
+| `asn.php` | Suspicious ASN numbers (used by rule I13) |
 | `email.php` | Suspicious email patterns |
-| `file-extensions.php` | File extension categories |
+| `file-extensions.php` | File extension categories (e.g. `Archive`, `Config`) |
 
-Each file returns a PHP array:
+Each file in `assets/lists/` overrides the built-in default list in `app/Utils/Assets/Lists/`. If a file is missing or does not return an array, tirreno falls back to the built-in defaults.
+
+Each file returns a PHP array (`asn.php` contains integers, `file-extensions.php` is grouped by category):
 
 ```php
 <?php
@@ -1822,7 +1949,7 @@ return [
 To add patterns:
 1. Open the appropriate file in `assets/lists/`
 2. Add your pattern string to the array
-3. Patterns are case-sensitive substring matches
+3. Patterns are case-insensitive substring matches
 
 **Example patterns by type:**
 
@@ -1830,7 +1957,30 @@ To add patterns:
 |------|------------------|
 | `url.php` | `'.env'`, `'../'`, `'/wp-admin'`, `'phpmyadmin'`, `'<script>'` |
 | `user-agent.php` | Bot signatures, scanner identifiers, SQL injection attempts |
+| `ai-bot.php` | `'GoogleAgent-Mariner'`, `'DuckAssistBot'`, `'Meta-ExternalAgent'` |
+| `asn.php` | `200373` |
 | `email.php` | `'spam'`, `'test'`, `'dummy'`, `'123'`, `'000'` |
+
+### Custom pages
+
+You can add your own pages to the dashboard without changing core code. A custom page consists of a PHP file in `assets/pages/` and a template in `assets/pages/views/`:
+
+| File | Purpose |
+|------|---------|
+| `assets/pages/<name>.php` | Page logic; the page is served at `/<name>` |
+| `assets/pages/views/<name>.html` | Page template (content only) |
+
+The template is looked up by the page name, so both files must share the same `<name>`. `<name>` may contain only letters, digits, `-` and `_`. Files ending in `.example.php` are ignored.
+
+Custom pages are built with tirreno's built-in API, documented in the [API reference](https://github.com/tirrenotechnologies/API.md). tirreno ships two reference pages: `llm-bots.example.php` (entities matched by rule D13, "Device is AI bot") and `risk-users.example.php`. The walkthrough below follows the LLM bots example.
+
+#### Checklist
+
+* Page file and template use the same `<name>`, without the `.example` suffix
+* `setTitle()` is called with a string literal
+* `redirectNotLoggedIn()` and `redirectImproperRole()` are called before any data is loaded
+* Data is passed as arrays of scalars and output with array access
+* All visible labels are passed with `addParams()`
 
 ---
 
@@ -1870,7 +2020,7 @@ Before your contributions can be accepted, you must sign the [tirreno Contributo
 
 #### Prerequisites
 
-- PHP 8.0 to 8.3 with extensions: PDO_PGSQL, cURL, mbstring
+- PHP 8.1 to 8.3 with extensions: PDO_PGSQL, pgsql, cURL, mbstring (PHP 8.1+ is required for the development tools)
 - PostgreSQL 12 or greater
 - Apache with mod_rewrite
 - Composer
@@ -1889,21 +2039,30 @@ composer install
 # 3. Create PostgreSQL database
 createdb tirreno_dev
 
-# 4. Configure database
-# Edit config/ files with your database credentials
-
-# 5. Run web installer
+# 4. Run web installer
 # Point Apache to project root, visit: http://localhost/install/
+# Enter the database credentials; the installer creates the schema
+# and writes config/local/config.local.ini
 
-# 6. Delete install directory (important!)
+# 5. Delete install directory (important!)
 rm -rf install/
 
-# 7. Setup cron job
+# 6. Setup cron job
 crontab -e
 # Add: */10 * * * * /usr/bin/php /absolute/path/to/tirreno/index.php /cron
 
-# 8. Create admin account at /signup/
+# 7. Create admin account at /signup/
 ```
+
+#### Configuration via environment variables
+
+Instead of `config/local/config.local.ini`, configuration can be provided through environment variables. Environment variables take precedence over values in the `.ini` files for the settings tirreno reads through its configuration layer, including the ones in this section and in the [Configuration reference](#configuration-reference).
+
+| Variable | Description |
+|----------|-------------|
+| `SITE` | Host name(s) of the instance, comma-separated |
+| `DATABASE_URL` | PostgreSQL connection string, e.g. `postgres://user:pass@127.0.0.1:5432/tirreno` |
+| `CONFIG_FILE` | Alternative local config file for the dashboard, relative to `config/` (default: `local/config.local.ini`). The sensor always reads `config/local/config.local.ini` |
 
 #### Docker setup
 
@@ -1915,18 +2074,24 @@ crontab -e
 
 tirreno uses the following tools for code quality:
 * **PHP_CodeSniffer** (`phpcs.xml`) for PHP style enforcement
-* **PHPStan** for static analysis
+* **PHPStan** (`phpstan.neon`, level 6) for static analysis
+* **PHPUnit** (`phpunit.xml`) for unit tests
 * **ESLint** (`eslint.config.js`) for JavaScript
 
-```bash
-# PHP CodeSniffer - check style
-./vendor/bin/phpcs --standard=phpcs.xml app/
+CI (`.github/workflows/ci.yml`) runs PHPUnit on PHP 8.1–8.3, PHPStan and PHP_CodeSniffer on every push and pull request to `master` and `dev`. Run the same commands locally before opening a pull request:
 
-# PHP CodeSniffer - auto-fix
-./vendor/bin/phpcbf --standard=phpcs.xml app/
+```bash
+# PHPUnit - unit tests
+./vendor/bin/phpunit
 
 # PHPStan - static analysis
-./vendor/bin/phpstan analyse
+./vendor/bin/phpstan analyse --configuration=phpstan.neon
+
+# PHP CodeSniffer - check style (whole repository, as configured in phpcs.xml)
+./vendor/bin/phpcs -n
+
+# PHP CodeSniffer - auto-fix
+./vendor/bin/phpcbf
 
 # ESLint - JavaScript
 npx eslint ui/js/
@@ -1944,8 +2109,12 @@ Follow the tirreno Model pattern:
 declare(strict_types=1);
 namespace Tirreno\Models;
 
-class Device extends \Tirreno\Models\BaseSql {
-    protected $DB_TABLE_NAME = 'event_device';
+class Device extends \Tirreno\Models\Base implements \Tirreno\Interfaces\ApiKeyAccessAuthorizationInterface {
+    protected string $tableName = 'event_device';
+
+    public function checkAccess(int $subjectId, int $apiKey): bool {
+        // ...
+    }
 
     public function getFullDeviceInfoById(int $deviceId, int $apiKey): array {
         // ...
@@ -1959,9 +2128,9 @@ Use fully-qualified class names and type declarations for all parameters and ret
 
 | Element | Convention | Example |
 |---------|------------|---------|
-| Classes/Namespaces | PascalCase | `Device`, `BaseSql` |
+| Classes/Namespaces | PascalCase | `Device`, `FileBasedPage` |
 | Methods/Variables | camelCase | `getDeviceInfo()`, `$apiKey` |
-| Constants | UPPER_SNAKE_CASE | `DB_TABLE_NAME` |
+| Constants | UPPER_SNAKE_CASE | `API_KEY`, `NAME` |
 | Tables/Columns | snake_case | `event_device`, `api_key` |
 | Query params | :snake_case | `:api_key`, `:device_id` |
 
@@ -1993,7 +2162,7 @@ $query = "SELECT * FROM event_device WHERE id = $deviceId";
 
 #### Database best practices
 
-Extend `\Models\BaseSql`, use `execQuery()`. Never raw PDO.
+Extend `\Tirreno\Models\Base`, use `execQuery()`. Never raw PDO.
 
 #### XSS prevention
 
@@ -2003,134 +2172,63 @@ Templates auto-escape with `{{ @var }}`. Use `htmlspecialchars()` at output time
 echo htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8');
 ```
 
-### Template syntax
-
-tirreno uses the Fat-Free Framework's template engine with includes, variables, and inline PHP:
-
-```html
-<include href="templates/parts/headerAdmin.html" />
-<div id="wrap">
-    <include href="templates/parts/panel/eventPanel.html" />
-    <include href="templates/parts/panel/devicePanel.html" />
-    <include href="templates/parts/leftMenu.html" />
-    <div class="main">
-        <include href="templates/parts/forms/globalSearchForm.html" />
-        <include href="templates/parts/systemNotification.html" />
-        <include href="templates/parts/notification.html" />
-
-        {~
-            $country = ['iso' => $IP['country_iso']];
-            $subtitle = array();
-            if(isset($IP['name']) && !empty($IP['name'])) {
-                $subtitle[] = $IP['name'];
-            }
-            $subtitle = join(', ', $subtitle);
-        ~}
-
-        <include href="templates/parts/infoHeader.html" with="title={{@IP.ip}}, country={{@country}}, id={{@IP.id}}"/>
-        <include href="templates/parts/widgets/ip.html" />
-        <include href="templates/parts/tables/users.html" />
-        <include href="templates/parts/tables/events.html" with="showChart=1"/>
-    </div>
-</div>
-<include href="templates/parts/footerAdmin.html" />
-```
-
-**Template conventions:**
-
-| Syntax | Purpose | Example |
-|--------|---------|---------|
-| `{{ @var }}` | Output escaped variable | `{{ @IP.ip }}` |
-| `{{ @var \| raw }}` | Output unescaped (careful!) | `{{ @htmlContent \| raw }}` |
-| `{{ @arr.key }}` | Access array element | `{{ @IP.country_iso }}` |
-| `{~ ... ~}` | Inline PHP code block | `{~ $x = 1 + 2; ~}` |
-| `<include href="..." />` | Include template file | `<include href="templates/parts/header.html" />` |
-| `<include ... with="..." />` | Include with parameters | `<include href="..." with="title={{@IP.ip}}, id={{@IP.id}}"/>` |
-| `{** ... **}` | Template comment (not rendered) | `{**<include href="..." />**}` |
-
-**Template directory structure:**
-```
-ui/templates/
-├── layout.html             # Base layout
-├── pages/                  # Page templates
-│   ├── admin/              # Admin page templates
-│   │   ├── events.html
-│   │   ├── ip.html
-│   │   ├── users.html
-│   │   └── ...
-│   ├── login.html
-│   ├── signup.html
-│   └── ...
-├── parts/                  # Reusable components
-│   ├── headerAdmin.html    # Common header
-│   ├── footerAdmin.html    # Common footer
-│   ├── leftMenu.html       # Navigation menu
-│   ├── notification.html   # Alert messages
-│   ├── forms/              # Form components
-│   ├── panel/              # Side panels
-│   ├── tables/             # Data tables
-│   ├── widgets/            # Dashboard widgets
-│   └── choices/            # Filter dropdowns
-└── snippets/               # Code snippets
-    ├── php.html
-    ├── python.html
-    └── nodejs.html
-```
-
-**Key patterns:**
-- Use `<include>` for reusable components (DRY principle)
-- Pass data with `with="param1={{@var1}}, param2={{@var2}}"`
-- Use `{~ ... ~}` for template logic (preprocessing data before display)
-- Comment out unused includes with `{** ... **}`
-- Access nested array data with dot notation: `@IP.country_iso`
-
 ### Internationalization (i18n)
 
-tirreno uses the framework's built-in internationalization support. Language strings are stored in dictionary files under `app/Dictionary/`.
+tirreno uses the framework's built-in dictionary support. Language strings are stored in dictionary files under `app/Dictionary/`:
+
+- `app/Dictionary/en.php` is the entry point and merges `en/All.php` (which includes `Pages/`, `Parts/` and `Errors.php`)
+- `app/Dictionary/en/Additional/<Page>.php` holds strings that are loaded only when the matching page is rendered (via `\Tirreno\Utils\DictManager`)
+
+Dictionary keys are flat variables (there is no `DICT.` prefix). By convention, keys are prefixed with the file they belong to, e.g. `LeftMenu_users_link` in `Parts/LeftMenu.php`.
 
 **Using translations in templates:**
 ```html
-<h1>{{ @DICT.dashboard_title }}</h1>
-<button>{{ @DICT.save_button }}</button>
+<a href="{{ @BASE }}/id">{{ @LeftMenu_users_link }}</a>
+<button>{{ @rules_thresholdValues_form_button_save }}</button>
 ```
 
 **Using translations in PHP:**
 ```php
-$f3 = \Base::instance();
-
-// Get translated string
-$message = $f3->get('DICT.welcome_message');
+// Get translated string (see $storage in the API reference)
+$message = tirreno('storage')->get('LeftMenu_users_link');
 
 // With variables
-$greeting = sprintf($f3->get('DICT.hello_user'), $userName);
+$greeting = sprintf(tirreno('storage')->get('some_key_with_placeholder'), $userName);
+```
+
+**Overriding strings without editing core files:** the `EXTRA_DICT_EN` and `EXTRA_DICT_EN_ERRORS` variables are merged over the built-in dictionary and error messages, so they can be set, for example, in `config/local/config.local.ini`:
+
+```ini
+EXTRA_DICT_EN.LeftMenu_users_link = Customers
 ```
 
 **Best practices:**
 - Never hardcode user-visible strings, use dictionary keys
-- Keep dictionary keys descriptive: `dashboard_title`, not `dt1`
+- Keep dictionary keys descriptive and prefixed consistently with the existing keys of the file, e.g. `LeftMenu_...` or `rules_...`
 - Group related strings with prefixes: `error_invalid_email`, `error_login_failed`
 - Don't concatenate translated strings, word order varies by language
 
 ### JavaScript coding standards
 
-Follow the ESLint configuration in `eslint.config.js`:
+Follow the ESLint configuration in `eslint.config.js` (`ecmaVersion: 2016`, ES modules, 4-space indentation). Because of the ES2016 target, do not use `async`/`await`; server requests are made with jQuery (`$.ajax`).
 
 ```javascript
 // Use const/let, not var
-const API_ENDPOINT = '/sensor/';
+const DEFAULT_LIMIT = 25;
 let eventCount = 0;
 
-// Use arrow functions
-const trackEvent = async (userId, eventType) => {
-    const response = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        body: new URLSearchParams({ userName: userId, eventType }),
+// Use arrow functions and template literals
+const loadIps = (params, onSuccess) => {
+    $.ajax({
+        url:        `${window.app_base}/loadIps`,
+        method:     'GET',
+        data:       params,
+        dataType:   'json',
+        success:    onSuccess,
     });
-    return response.ok;
 };
 
-// Use template literals
-const message = `User ${userId} logged in at ${timestamp}`;
+const message = `Loaded ${eventCount} events`;
 ```
 
 #### Page architecture
@@ -2139,18 +2237,16 @@ tirreno uses ES6 modules with a class-based page structure:
 
 ```javascript
 import {BasePage} from './Base.js';
-
-import {DatesFilter} from '../parts/DatesFilter.js?v=2';
-import {SearchFilter} from '../parts/SearchFilter.js?v=2';
-import {IpTypeFilter} from '../parts/choices/IpTypeFilter.js?v=2';
-import {IpsChart} from '../parts/chart/Ips.js?v=2';
-import {IpsGrid} from '../parts/grid/Ips.js?v=2';
+import {SequentialLoad} from '../parts/SequentialLoad.js';
+import {DatesFilter} from '../parts/DatesFilter.js';
+import {SearchFilter} from '../parts/SearchFilter.js';
+import {IpTypeFilter} from '../parts/choices/IpTypeFilter.js';
+import {IpsChart} from '../parts/chart/Ips.js';
+import {IpsGrid} from '../parts/grid/Ips.js';
 
 export class IpsPage extends BasePage {
-
     constructor() {
         super('ips');
-        this.initUi();
     }
 
     initUi() {
@@ -2165,12 +2261,12 @@ export class IpsPage extends BasePage {
         };
 
         const gridParams = {
-            url:        `${window.app_base}/admin/loadIps`,
+            url:        `${window.app_base}/loadIps`,
             tileId:     'totalIps',
             tableId:    'ips-table',
 
             dateRangeGrid:      true,
-            calculateTotals:    true,
+            timeFrameTotalUrl:  `${window.app_base}/loadIpsTimeFrameTotal`,
             totals: {
                 type: 'ip',
                 columns: ['total_visit'],
@@ -2180,15 +2276,31 @@ export class IpsPage extends BasePage {
             orderByLastseen:    false,
 
             choicesFilterEvents: [ipTypeFilter.getEventType()],
+
             getParams: this.getParamsSection,
         };
 
-        const chartParams = this.getChartParams(datesFilter, searchFilter);
+        const chartParams = {
+            url:        `${window.app_base}/loadIpsChart`,
+            getParams:  this.getParamsSection,
+        };
 
-        new IpsChart(chartParams);
-        new IpsGrid(gridParams);
+        const elements = [
+            [IpsChart,    chartParams],
+            [IpsGrid,     gridParams],
+        ];
+
+        new SequentialLoad(elements);
     }
 }
+```
+
+The entry point `ui/js/endpoints/ips.js` only instantiates the page:
+
+```javascript
+import {IpsPage} from '../pages/Ips.js';
+
+new IpsPage();
 ```
 
 **JavaScript conventions:**
@@ -2197,40 +2309,10 @@ export class IpsPage extends BasePage {
 |---------|-------------|---------|
 | ES6 modules | Use `import`/`export` | `import {BasePage} from './Base.js';` |
 | Class inheritance | Pages extend `BasePage` | `class IpsPage extends BasePage` |
-| Version cache-busting | Append `?v=N` to imports | `'../parts/DatesFilter.js?v=2'` |
-| Constructor pattern | Call `super()`, then `initUi()` | `super('ips'); this.initUi();` |
+| Constructor pattern | Call only `super()`; `BasePage` runs `initUi()` once client constants are loaded (`constantsLoaded` event) | `super('ips');` |
 | Filters object | Store filter instances | `this.filters = { dateRange, searchValue }` |
-| Global app base | Use `window.app_base` for URLs | `` `${window.app_base}/admin/loadIps` `` |
-
-**JavaScript directory structure:**
-```
-ui/js/
-├── endpoints/                  # Page entry points
-│   ├── admin_ips.js
-│   ├── admin_events.js
-│   └── ...
-├── pages/                      # Page controllers
-│   ├── Base.js                 # Base page class
-│   ├── Ips.js                  # IPs page (IpsPage)
-│   ├── Events.js               # Events page
-│   └── ...
-├── parts/                      # Reusable components
-│   ├── DatesFilter.js          # Date range filter
-│   ├── SearchFilter.js         # Search input filter
-│   ├── DataRenderers.js        # Column rendering functions
-│   ├── choices/                # Dropdown filters (Choices.js)
-│   │   └── IpTypeFilter.js
-│   ├── chart/                  # Chart components (uPlot)
-│   │   └── Ips.js
-│   ├── grid/                   # Data grid components (DataTables)
-│   │   └── Ips.js
-│   ├── panel/                  # Detail panels
-│   └── utils/                  # Utility modules
-│       ├── Constants.js
-│       ├── String.js
-│       └── Date.js
-└── vendor/                     # Third-party libraries
-```
+| Global app base | Use `window.app_base` for URLs (routes have no `/admin/` prefix) | `` `${window.app_base}/loadIps` `` |
+| Sequential loading | Create charts and grids through `SequentialLoad` | `new SequentialLoad([[IpsChart, chartParams], [IpsGrid, gridParams]]);` |
 
 ### File formatting
 
@@ -2277,9 +2359,11 @@ All text files should use Unix-style line endings (LF, not CRLF). Windows develo
 ### Testing
 
 Before submitting a pull request:
-1. Test your changes on Chrome and Firefox
-2. Run code quality checks: phpcs, phpstan, eslint
-3. Verify database changes work with PostgreSQL 12+
+1. Run the unit tests: `./vendor/bin/phpunit`
+2. Add or update tests for your change in `tests/Unit/` (shared test doubles and helpers live in `tests/Support/`)
+3. Run code quality checks: phpcs, phpstan, eslint
+4. Test your changes on Chrome and Firefox
+5. Verify database changes work with PostgreSQL 12+
 
 ---
 
@@ -2291,6 +2375,7 @@ Before submitting a pull request:
 | Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
 | Resource center | [tirreno.com/bat](https://www.tirreno.com/bat/) |
 | Administration guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
+| API reference | [github.com/tirrenotechnologies/API.md](https://github.com/tirrenotechnologies/API.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
 | Docker Hub | [hub.docker.com/r/tirreno/tirreno](https://hub.docker.com/r/tirreno/tirreno) |
