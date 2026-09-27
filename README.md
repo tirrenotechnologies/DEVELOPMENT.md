@@ -17,8 +17,8 @@ tirreno is available in three editions:
 For Enterprise and White-label editions, contact team@tirreno.com.
 
 ```
-     Community                  Application               White-
-     Edition                    Edition                   label
+     Community                  Enterprise               White-
+     Edition                    Edition                  label
          │                         │                         │
          ▼                         ▼                         ▼
     Personal apps             Internal/External        Embed & resell
@@ -43,7 +43,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 ## Table of contents
 
-1. [System architecture](#tirreno-system-architecture)
+1. [System architecture](#system-architecture)
    - [Introduction](#introduction)
    - [Overview](#overview)   
    - [System requirements](#system-requirements)
@@ -64,7 +64,7 @@ Here is some basic information for new developers to get up and running quickly:
    - [Send all logged-in user events](#send-all-logged-in-user-events)
    - [Protecting the registration](#protecting-the-registration)
    - [Protecting the login](#protecting-the-login)
-   - [Auto-ban abusive IPs](#auto-ban-abusive-ips)
+   - [Auto-ban abusive users](#auto-ban-abusive-users)
    - [Field audit trail](#field-audit-trail)
    - [Testing your integration](#testing-your-integration)
 
@@ -86,7 +86,6 @@ Here is some basic information for new developers to get up and running quickly:
    - [Local development setup](#local-development-setup)
    - [Code quality tools](#code-quality-tools)
    - [PHP coding standards](#php-coding-standards)
-   - [Template syntax](#template-syntax)
    - [Internationalization (i18n)](#internationalization-i18n)
    - [JavaScript coding standards](#javascript-coding-standards)
    - [File formatting](#file-formatting)
@@ -385,9 +384,9 @@ Since v0.10.0 tirreno uses role-based access control (RBAC). Operators are assig
 |------|---------------------|
 | `superuser` | All permissions, including `user_admin` (operator administration) |
 | `operator` | All page permissions (`page_view`, `page_edit`, `page_delete`, `page_publish`) except `user_admin`, on all pages except `/cron` |
-| `guest` | `page_view` and `page_edit` |
+| `guest` | Visitors who are not logged in: `page_view` and `page_edit` on the signup, login, password recovery and error pages only |
 
-Permissions are assigned per role and page (`dshb_roles_permissions`, `dshb_pages_permissions`).
+Permissions are assigned per role and page (`dshb_roles_permissions`, `dshb_pages_permissions`). The account created at `/signup` (only one account can be created this way) gets the `operator` role.
 
 ---
 
@@ -551,7 +550,7 @@ Required for `field_edit` events. Must be an array of field change objects:
 
 #### Blacklist API
 
-Check if a user or IP is blacklisted:
+Check if a user is blacklisted. The value is matched against user IDs (`userName`) only; IP addresses, emails and phone numbers are not looked up.
 
 **Request:**
 ```
@@ -560,18 +559,19 @@ Content-Type: application/json
 Api-Key: YOUR_API_KEY
 
 {
-    "value": "username_or_ip"
+    "value": "user123"
 }
 ```
 
 **Response:**
 ```json
 {
-    "value": "username_or_ip",
+    "value": "user123",
     "blacklisted": false
 }
 ```
-**Note:** Successful requests (2xx) return no response body.
+
+The response is JSON. A missing or unknown API key returns `401`.
 
 #### Logbook event types
 
@@ -583,7 +583,7 @@ The Logbook page in tirreno dashboard tracks all API requests with these status 
 | Validation warning | Event recorded with field corrections (e.g., truncated values) |
 | Critical validation error | Event rejected due to missing required fields |
 | Critical error | Server error, event not recorded |
-| Rate limit exceeded | Request rejected due to rate limiting (`LEAKY_BUCKET_RPS` & `LEAKY_BUCKET_WINDOW` in `/config/config.ini)|
+| Rate limit exceeded | Request rejected due to rate limiting (`LEAKY_BUCKET_RPS` & `LEAKY_BUCKET_WINDOW`, set in `config/local/config.local.ini` or as environment variables) |
 
 ---
 
@@ -610,7 +610,7 @@ tirreno tracks per-user metrics: devices per day, IPs per day, sessions, events 
 
 ### Integration planning
 
-> **Application Edition:** For internal applications we recommend to use existing integrations. Check the list of available integrations or contact tirreno at team@tirreno.com for further details.
+> **Enterprise Edition:** For internal applications we recommend to use existing integrations. Check the list of available integrations or contact tirreno at team@tirreno.com for further details.
 
 #### What to track
 
@@ -772,7 +772,7 @@ tracker.track(event)
 ```javascript
 npm install @tirreno/tirreno-tracker
 
-const Tracker = require('@tirreno/tirreno-tracker');
+import Tracker from '@tirreno/tirreno-tracker';
 
 const tracker = new Tracker('https://your-tirreno-instance.com', 'your-api-key');
 
@@ -931,7 +931,6 @@ $tracker->setUserName((string) $userId)
         ->setIpAddress($_SERVER['REMOTE_ADDR'])
         ->setUrl('/register')
         ->setUserAgent($_SERVER['HTTP_USER_AGENT'] ?? '')
-        ->setUserCreated(date('Y-m-d H:i:s'))
         ->setEventTypeAccountRegistration();
 
 $tracker->track();
@@ -1087,6 +1086,7 @@ $email = $_POST['email'];
 $password = $_POST['password'];
 
 // Block known attackers before authentication
+// (matches accounts tracked with the email as userName, e.g. failed logins below)
 if ($blacklistService->isBlacklisted($email)) {
     die('Invalid credentials');
 }
@@ -1125,9 +1125,11 @@ $_SESSION['user_id'] = $user['id'];
 header('Location: /dashboard');
 ```
 
-### Auto-ban abusive IPs
+### Auto-ban abusive users
 
-Use tirreno's IP analysis combined with the blacklist API for automatic protection.
+tirreno's rules analyze IP addresses, devices and behaviour, and users below the **Auto-blacklisting** threshold are blacklisted automatically. Block them in your application with the [Blacklist API](#blacklist-api).
+
+**Note:** The Blacklist API matches user IDs only, so blocking by IP address is not currently supported.
 
 #### Configure threshold settings
 
@@ -1138,13 +1140,13 @@ Before implementing auto-ban, configure and test the threshold settings in tirre
 3. Set **Auto-blacklisting** threshold (e.g., 20) users below this score are automatically blacklisted
 4. Click **Update** in the **Thresholds settings** form to save settings
 
-#### Middleware for IP-based blocking
+#### Middleware for blocking blacklisted users
 
 **PHP:**
 ```php
-$ip = $_SERVER['REMOTE_ADDR'];
+session_start();
 
-if ($blacklistService->isBlacklisted($ip)) {
+if (isset($_SESSION['user_id']) && $blacklistService->isBlacklisted((string) $_SESSION['user_id'])) {
     http_response_code(403);
     die('Access denied');
 }
@@ -1152,14 +1154,14 @@ if ($blacklistService->isBlacklisted($ip)) {
 
 **Python:**
 ```python
-if blacklist_service.is_blacklisted(ip_address):
+if user_id and blacklist_service.is_blacklisted(str(user_id)):
     # Return 403 Access denied
     pass
 ```
 
 **Node.js:**
 ```javascript
-if (await blacklistService.isBlacklisted(ipAddress)) {
+if (userId && await blacklistService.isBlacklisted(userId.toString())) {
     // Return 403 Access denied
 }
 ```
@@ -1185,166 +1187,7 @@ Each field change object has these properties:
 
 **Note:** Missing required fields default to `"unknown"`. All values are converted to strings.
 
-**PHP:**
-```php
-function trackFieldChanges($userId, $userEmail, $oldData, $newData, $tracker) {
-    $trackableFields = [
-        'city' => 'User city',
-        'phone' => 'Phone number',
-        'address' => 'Address',
-        'company' => 'Company name',
-    ];
-
-    $changes = [];
-    foreach ($trackableFields as $field => $fieldName) {
-        $oldValue = $oldData[$field] ?? '';
-        $newValue = $newData[$field] ?? '';
-
-        if ($oldValue !== $newValue) {
-            $changes[] = [
-                'field_id' => crc32($field),
-                'field_name' => $fieldName,
-                'old_value' => (string) $oldValue,
-                'new_value' => (string) $newValue,
-                'parent_id' => '',
-                'parent_name' => '',
-            ];
-        }
-    }
-
-    if (!empty($changes)) {
-        $tracker->setUserName((string) $userId)
-                ->setEmailAddress($userEmail)
-                ->setIpAddress($_SERVER['REMOTE_ADDR'])
-                ->setUrl($_SERVER['REQUEST_URI'])
-                ->setUserAgent($_SERVER['HTTP_USER_AGENT'] ?? '')
-                ->setEventTypeFieldEdit()
-                ->setFieldHistory($changes);
-
-        $tracker->track();
-    }
-}
-
-// Usage
-$oldData = getUserById($userId);
-updateUser($userId, $_POST);
-trackFieldChanges($userId, $userEmail, $oldData, $_POST, $tracker);
-```
-
-**Python:**
-```python
-def track_field_changes(user_id, user_email, old_data, new_data, tracker):
-    trackable_fields = {
-        'city': 'User city',
-        'phone': 'Phone number',
-        'address': 'Address',
-        'company': 'Company name',
-    }
-
-    changes = []
-    for field, field_name in trackable_fields.items():
-        old_value = old_data.get(field, '')
-        new_value = new_data.get(field, '')
-
-        if old_value != new_value:
-            changes.append({
-                'field_id': hash(field) & 0xffffffff,
-                'field_name': field_name,
-                'old_value': str(old_value),
-                'new_value': str(new_value),
-                'parent_id': '',
-                'parent_name': '',
-            })
-
-    if changes:
-        event = tracker.create_event()
-
-        event.set_user_name(str(user_id)) \
-             .set_email_address(user_email) \
-             .set_ip_address(ip_address) \
-             .set_url(url_path) \
-             .set_user_agent(user_agent) \
-             .set_event_type_field_edit() \
-             .set_field_history(changes)
-
-        tracker.track(event)
-
-# Usage
-old_data = get_user_by_id(user_id)
-update_user(user_id, new_data)
-track_field_changes(user_id, user_email, old_data, new_data, tracker)
-```
-
-**Node.js:**
-```javascript
-async function trackFieldChanges(userId, userEmail, oldData, newData, tracker) {
-    const trackableFields = {
-        city: 'User city',
-        phone: 'Phone number',
-        address: 'Address',
-        company: 'Company name',
-    };
-
-    const changes = [];
-    for (const [field, fieldName] of Object.entries(trackableFields)) {
-        const oldValue = oldData[field] ?? '';
-        const newValue = newData[field] ?? '';
-
-        if (oldValue !== newValue) {
-            changes.push({
-                field_id: hashCode(field),
-                field_name: fieldName,
-                old_value: String(oldValue),
-                new_value: String(newValue),
-                parent_id: '',
-                parent_name: ''
-            });
-        }
-    }
-
-    if (changes.length > 0) {
-        const event = tracker.createEvent();
-
-        event.setUserName(userId.toString())
-             .setEmailAddress(userEmail)
-             .setIpAddress(ipAddress)
-             .setUrl(urlPath)
-             .setUserAgent(userAgent)
-             .setEventTypeFieldEdit()
-             .setFieldHistory(changes);
-
-        await tracker.track(event);
-    }
-}
-
-// Usage
-const oldData = await getUserById(userId);
-await updateUser(userId, newData);
-await trackFieldChanges(userId, userEmail, oldData, newData, tracker);
-```
-
-**Tracking nested/related data:**
-```php
-// For related records (e.g., user addresses)
-$changes = [];
-
-foreach ($updatedAddresses as $address) {
-    $original = $originalAddresses->find($address->id);
-
-    foreach (['street', 'city', 'zip'] as $field) {
-        if ($original->$field !== $address->$field) {
-            $changes[] = [
-                'field_id' => crc32($field),
-                'field_name' => ucfirst($field),
-                'old_value' => $original->$field,
-                'new_value' => $address->$field,
-                'parent_id' => (string) $address->id,      // Link to address record
-                'parent_name' => "Address #{$address->id}", // Human-readable reference
-            ];
-        }
-    }
-}
-```
+**Note:** The Python tracker does not support `parent_id` and `parent_name`.
 
 ### Testing your integration
 
@@ -1366,7 +1209,7 @@ curl -X POST https://your-tirreno.com/sensor/ \
 2. **Check the Logbook:**
    - Log in to your tirreno instance
    - Navigate to **Logbook** in the left menu
-   - View real-time API requests with Source IP, Timestamp, Endpoint, and Status
+   - View real-time API requests with Source IP, Local timestamp, Endpoint, Status and Raw POST data
    - Filter by endpoint, IP, or error messages using the search box
    - The chart shows request volume over time to identify traffic patterns
 
@@ -1691,9 +1534,9 @@ The rules engine uses ruler/ruler for condition evaluation. Available operators 
 | `lessThanOrEqualTo` | Less or equal | `$this->rb['eup_device_count']->lessThanOrEqualTo(1)` |
 | `stringContains` | Substring match | `$this->rb['le_email']->stringContains('test')` |
 | `stringContainsInsensitive` | Case-insensitive substring | `$this->rb['le_domain_part']->stringContainsInsensitive('mail')` |
-| `startsWith` | Prefix match | `$this->rb['event_url_string']->startsWith('/api/')` |
+| `startsWith` | Prefix match | `$this->rb['ea_userid']->startsWith('test_')` |
 | `endsWith` | Suffix match | `$this->rb['le_email']->endsWith('.edu')` |
-| `sameAs` | Variable comparison | `$this->rb['lp_country_code']->sameAs($this->rb['eip_country_id'])` |
+| `sameAs` | Strict comparison of two values (`===`) | `$this->rb['ea_firstname']->sameAs($this->rb['ea_lastname'])` |
 
 **Logical operators:**
 
@@ -1720,6 +1563,8 @@ $this->rb->logicalNot(
 
 When writing custom rules, the following attributes are available in the `defineCondition()` method. Access them via `$this->rb['attribute_name']`.
 
+Attributes of type `array` hold one value per event, IP address or device. Reduce them to a single value in `prepareParams()` (for example with `in_array()` or `count()`) before using them in a condition; string operators such as `startsWith` throw an error on arrays.
+
 #### Event attributes (event_)
 
 From Event context:
@@ -1727,7 +1572,6 @@ From Event context:
 |-----------|------|-------------|
 | `event_ip` | array | IP IDs per event |
 | `event_url_string` | array | URLs per event |
-| `event_empty_referer` | array | Empty referer status per event |
 | `event_device` | array | Device IDs per event |
 | `event_type` | array | Event types |
 | `event_http_code` | array | HTTP response codes |
@@ -1826,7 +1670,9 @@ From Session context:
 | `event_session_multiple_device` | bool | Device changed within 30 min |
 | `event_session_night_time` | bool | Activity between midnight and 5 AM |
 
-#### Email attributes (Platform Edition only)
+#### Email attributes (fraud detection enrichment)
+
+Values that come from enrichment (for example data breaches, blocklists, domain and phone checks) require fraud detection enrichment, an option for the Enterprise and White-label editions.
 
 Last Email Attributes (le_):
 | Attribute | Type | Description |
@@ -1866,7 +1712,7 @@ Email Attributes (ee_):
 | `ee_earliest_breach` | array | Earliest breach dates per email |
 | `ee_days_since_first_breach` | int | Days since earliest known breach (-1 if none) |
 
-#### Domain attributes (Platform Edition only)
+#### Domain attributes (fraud detection enrichment)
 
 Last Domain Attributes (ld_):
 | Attribute | Type | Description |
@@ -1889,7 +1735,7 @@ Derived last domain attributes:
 | `ld_domain_without_mx_record` | bool | Domain has no MX record |
 | `ld_website_is_disabled` | bool | Domain website is disabled |
 
-#### Phone attributes (Platform Edition only)
+#### Phone attributes (fraud detection enrichment)
 
 From Phone context (ep_):
 | Attribute | Type | Description |
@@ -2036,23 +1882,34 @@ cd tirreno
 # 2. Install dependencies
 composer install
 
-# 3. Create PostgreSQL database
+# 3. Create PostgreSQL database and the required extensions
 createdb tirreno_dev
+# pg_stat_statements can only be created by a PostgreSQL superuser
+sudo -u postgres psql -d tirreno_dev -c "CREATE EXTENSION IF NOT EXISTS citext; CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
 
-# 4. Run web installer
+# 4. Give the web server write access (Apache runs as www-data, not as you)
+sudo chgrp -R www-data config assets/logs tmp
+chmod -R g+w config assets/logs tmp
+
+# 5. Run web installer
 # Point Apache to project root, visit: http://localhost/install/
 # Enter the database credentials; the installer creates the schema
 # and writes config/local/config.local.ini
 
-# 5. Delete install directory (important!)
+# 6. Delete install directory (important!) and keep Git from committing the deletion
 rm -rf install/
+git ls-files -z install/ | xargs -0 git update-index --skip-worktree
 
-# 6. Setup cron job
-crontab -e
+# 7. Setup cron job for the web server user
+sudo crontab -u www-data -e
 # Add: */10 * * * * /usr/bin/php /absolute/path/to/tirreno/index.php /cron
 
-# 7. Create admin account at /signup/
+# 8. Create admin account at /signup (available only until the first account exists)
 ```
+
+If the installer fails with "Database already locked by another installation process", a previous attempt left its lock. Remove it with `psql -d tirreno_dev -c "DROP TABLE IF EXISTS dshb_install_flag;"` and run the installer again.
+
+Before pulling updates that change `install/`, undo step 6 with `git ls-files -z install/ | xargs -0 git update-index --no-skip-worktree` and restore the files with `git checkout -- install/`.
 
 #### Configuration via environment variables
 
@@ -2084,6 +1941,10 @@ CI (`.github/workflows/ci.yml`) runs PHPUnit on PHP 8.1–8.3, PHPStan and PHP_C
 # PHPUnit - unit tests
 ./vendor/bin/phpunit
 
+# Clear compiled templates first: tmp/ fills up when you open the app locally,
+# and PHPStan and PHP_CodeSniffer would report errors in those files
+find tmp -name '*.php' ! -name index.php -delete
+
 # PHPStan - static analysis
 ./vendor/bin/phpstan analyse --configuration=phpstan.neon
 
@@ -2094,9 +1955,11 @@ CI (`.github/workflows/ci.yml`) runs PHPUnit on PHP 8.1–8.3, PHPStan and PHP_C
 ./vendor/bin/phpcbf
 
 # ESLint - JavaScript
-npx eslint ui/js/
-npx eslint ui/js/ --fix
+npx eslint ui/js/ --ignore-pattern 'ui/js/vendor/**'
+npx eslint ui/js/ --ignore-pattern 'ui/js/vendor/**' --fix
 ```
+
+There is no `package.json`, so `npx` runs the latest ESLint. The `ignores` in `eslint.config.js` currently apply only to its own configuration block, so pass `--ignore-pattern` to keep third-party libraries in `ui/js/vendor/` out of the check.
 
 ### PHP coding standards
 
@@ -2177,7 +2040,7 @@ echo htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8');
 tirreno uses the framework's built-in dictionary support. Language strings are stored in dictionary files under `app/Dictionary/`:
 
 - `app/Dictionary/en.php` is the entry point and merges `en/All.php` (which includes `Pages/`, `Parts/` and `Errors.php`)
-- `app/Dictionary/en/Additional/<Page>.php` holds strings that are loaded only when the matching page is rendered (via `\Tirreno\Utils\DictManager`)
+- `app/Dictionary/en/Additional/<Page>.php` holds strings that are loaded only when the matching page is rendered (via `\Tirreno\Utils\DictManager`); `Notifications.php`, `Enrichment.php` and `Totals.php` are always loaded
 
 Dictionary keys are flat variables (there is no `DICT.` prefix). By convention, keys are prefixed with the file they belong to, e.g. `LeftMenu_users_link` in `Parts/LeftMenu.php`.
 
@@ -2307,7 +2170,7 @@ new IpsPage();
 
 | Pattern | Description | Example |
 |---------|-------------|---------|
-| ES6 modules | Use `import`/`export` | `import {BasePage} from './Base.js';` |
+| ES6 modules | Use `import`/`export`; imports in the repository end with the version as a cache-busting suffix | `import {BasePage} from './Base.js?v=0.10.1';` |
 | Class inheritance | Pages extend `BasePage` | `class IpsPage extends BasePage` |
 | Constructor pattern | Call only `super()`; `BasePage` runs `initUi()` once client constants are loaded (`constantsLoaded` event) | `super('ips');` |
 | Filters object | Store filter instances | `this.filters = { dateRange, searchValue }` |
