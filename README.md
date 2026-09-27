@@ -53,7 +53,7 @@ Here is some basic information for new developers to get up and running quickly:
 
 2. [API integration](#api-integration)
    - [Official tracker libraries](#official-tracker-libraries)
-   - [API reference](#api-reference)
+   - [Sensor API reference](#sensor-api-reference)
 
 3. [Integration guide](#integration-guide)
    - [Why send events to tirreno?](#why-send-events-to-tirreno)
@@ -406,7 +406,7 @@ Use one of these:
 
 Repos: [PHP](https://github.com/tirrenotechnologies/tirreno-php-tracker), [Python](https://github.com/tirrenotechnologies/tirreno-python-tracker), [Node.js](https://github.com/tirrenotechnologies/tirreno-nodejs-tracker)
 
-### API reference
+### Sensor API reference
 
 #### Endpoint
 
@@ -573,6 +573,8 @@ Api-Key: YOUR_API_KEY
 
 The response is JSON. A missing or unknown API key returns `401`.
 
+The examples in this guide use `$blacklistService->isBlacklisted($value)` (`blacklist_service.is_blacklisted()` in Python, `blacklistService.isBlacklisted()` in Node.js). It stands for your own small wrapper that sends this request and returns the `blacklisted` field; define it before using the examples.
+
 #### Logbook event types
 
 The Logbook page in tirreno dashboard tracks all API requests with these status codes:
@@ -723,7 +725,8 @@ Usage:
 <?php
 
 // Load object
-require_once("TirrenoTracker.php");
+require_once("TirrenoTracker.php");            // manual download
+// require __DIR__ . '/vendor/autoload.php';  // Composer installation
 
 $tirrenoUrl = "https://example.tld/sensor/"; // Sensor URL
 $trackingId = "XXX"; // Tracking ID
@@ -748,9 +751,11 @@ $tracker->track();
 ```
 
 **Python:**
-```python
+```bash
 pip install tirreno_tracker
+```
 
+```python
 from tirreno_tracker import Tracker
 
 tracker = Tracker('https://your-tirreno-instance.com', 'your-api-key')
@@ -769,9 +774,11 @@ tracker.track(event)
 ```
 
 **Node.js:**
-```javascript
+```bash
 npm install @tirreno/tirreno-tracker
+```
 
+```javascript
 import Tracker from '@tirreno/tirreno-tracker';
 
 const tracker = new Tracker('https://your-tirreno-instance.com', 'your-api-key');
@@ -818,7 +825,7 @@ await tracker.track(event);
 1. **Consistent user identifiers:**
 ```php
 // Good - use permanent ID
-$tracker->setUserName($user->id);
+$tracker->setUserName((string) $user->id);
 
 // Bad - don't use changing values
 $tracker->setUserName($user->email);  // Emails can change
@@ -830,21 +837,26 @@ The tracker libraries automatically set `eventTime` to the current UTC timestamp
 
 ```php
 // PHP - include milliseconds
-$eventTime = date('Y-m-d H:i:s.v');  // 2024-01-15 10:30:45.123
+// (date() has no milliseconds and uses the server time zone, so use DateTime in UTC)
+$eventTime = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s.v');  // 2024-01-15 10:30:45.123
 ```
 
 3. **Real IP addresses:**
 ```php
-// Good - handle proxies correctly
-function getRealIp(): string {
-    $headers = ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'];
-    foreach ($headers as $header) {
-        if (!empty($_SERVER[$header])) {
-            $ips = explode(',', $_SERVER[$header]);
-            return trim($ips[0]);
+// Good - trust proxy headers only when the request comes from your own proxy;
+// any client can send X-Forwarded-For
+function getRealIp(array $trustedProxies = ['10.0.0.1']): string {
+    $remoteAddr = $_SERVER['REMOTE_ADDR'];
+
+    if (in_array($remoteAddr, $trustedProxies, true)) {
+        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR'] as $header) {
+            if (!empty($_SERVER[$header])) {
+                return trim(explode(',', $_SERVER[$header])[0]);
+            }
         }
     }
-    return $_SERVER['REMOTE_ADDR'];
+
+    return $remoteAddr;
 }
 
 $tracker->setIpAddress(getRealIp());
@@ -1536,7 +1548,7 @@ The rules engine uses ruler/ruler for condition evaluation. Available operators 
 | `stringContainsInsensitive` | Case-insensitive substring | `$this->rb['le_domain_part']->stringContainsInsensitive('mail')` |
 | `startsWith` | Prefix match | `$this->rb['ea_userid']->startsWith('test_')` |
 | `endsWith` | Suffix match | `$this->rb['le_email']->endsWith('.edu')` |
-| `sameAs` | Strict comparison of two values (`===`) | `$this->rb['ea_firstname']->sameAs($this->rb['ea_lastname'])` |
+| `sameAs` | Strict comparison of two values (`===`); two empty values also match | `$this->rb['ea_userid']->sameAs($this->rb['le_email'])` |
 
 **Logical operators:**
 
@@ -1776,7 +1788,7 @@ tirreno maintains lists of suspicious patterns in `assets/lists/`:
 | `email.php` | Suspicious email patterns |
 | `file-extensions.php` | File extension categories (e.g. `Archive`, `Config`) |
 
-Each file in `assets/lists/` overrides the built-in default list in `app/Utils/Assets/Lists/`. If a file is missing or does not return an array, tirreno falls back to the built-in defaults.
+Each file in `assets/lists/` overrides the built-in default list in `app/Utils/Assets/Lists/`. If a file is missing or does not return an array, tirreno falls back to the built-in defaults. A file replaces the whole list, so it must contain every pattern you want to keep.
 
 Each file returns a PHP array (`asn.php` contains integers, `file-extensions.php` is grouped by category):
 
@@ -1959,8 +1971,6 @@ npx eslint ui/js/ --ignore-pattern 'ui/js/vendor/**'
 npx eslint ui/js/ --ignore-pattern 'ui/js/vendor/**' --fix
 ```
 
-There is no `package.json`, so `npx` runs the latest ESLint. The `ignores` in `eslint.config.js` currently apply only to its own configuration block, so pass `--ignore-pattern` to keep third-party libraries in `ui/js/vendor/` out of the check.
-
 ### PHP coding standards
 
 #### Class structure
@@ -2029,7 +2039,7 @@ Extend `\Tirreno\Models\Base`, use `execQuery()`. Never raw PDO.
 
 #### XSS prevention
 
-Templates auto-escape with `{{ @var }}`. Use `htmlspecialchars()` at output time in PHP:
+Templates auto-escape strings and arrays printed with `{{ @var }}`. Entity objects are not escaped: `{{ @user->userid }}` prints the raw value, so pass entities to templates as arrays of scalars. Use `htmlspecialchars()` at output time in PHP:
 
 ```php
 echo htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8');
@@ -2082,10 +2092,13 @@ let eventCount = 0;
 
 // Use arrow functions and template literals
 const loadIps = (params, onSuccess) => {
+    // Data requests need the CSRF token from the page, or they return 403
+    const token = document.head.querySelector('[name=\'csrf-token\'][content]').content;
+
     $.ajax({
         url:        `${window.app_base}/loadIps`,
         method:     'GET',
-        data:       params,
+        data:       Object.assign({token: token}, params),
         dataType:   'json',
         success:    onSuccess,
     });
