@@ -46,7 +46,6 @@ Here is some basic information for new developers to get up and running quickly:
 1. [System architecture](#system-architecture)
    - [Introduction](#introduction)
    - [Overview](#overview)   
-   - [System requirements](#system-requirements)
    - [Directory structure](#directory-structure)
    - [Configuration reference](#configuration-reference)
    - [Access control](#access-control)
@@ -117,18 +116,6 @@ tirreno is an open-source framework for building sovereign security, compliance 
 ```
 
 Your application sends entity events (logins, registrations, page views, field changes) to tirreno. tirreno analyzes the events, calculates risk scores, and can automatically blacklist suspicious entity. Your app can query the blacklist API to block bad actors in real-time.
-
-### System requirements
-
-- **PHP** 8.0–8.3 with PDO_PGSQL, pgsql, cURL, mbstring
-- **PHP** `memory_limit` of at least 128 MB
-- **PostgreSQL** 12+
-- **Apache** with mod_rewrite and `.htaccess` support
-- Read/write permission for the `/config` directory (the installer writes `config/local/config.local.ini`)
-
-**Note:** PHP 8.0 is sufficient to run tirreno, but development requires PHP 8.1 or later: `composer.json` pins the platform to PHP 8.1.32, PHPUnit 10.5 requires PHP 8.1, and CI runs tests on PHP 8.1–8.3.
-
-Hardware: 512 MB RAM for PostgreSQL (4 GB recommended), ~3 GB storage per 1M events.
 
 ### Directory structure
 
@@ -350,49 +337,17 @@ tirreno/
 
 ### Configuration reference
 
-Main settings live in `config/config.ini`; local overrides go into `config/local/config.local.ini`. Environment variables with the same name take precedence for the settings below (see [Configuration via environment variables](#configuration-via-environment-variables)).
-
-Selected settings for developers:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `DEBUG` | `0` | Error detail level, see below |
-| `LOG_TO_STDOUT` | `false` | Also write log messages to stdout (useful in containers) |
-| `LOG_TO_DATABASE` | `false` | Store error records in the database (for requests of logged-in operators) |
-| `CHECK_RULE_USERS_LIMIT` | `1000` | Number of users evaluated when testing a rule on the Rules engine page |
-| `RECALCULATE_TOTALS_ON_VISIT` | `true` | Recalculate totals of the entities shown when a list page is opened |
-| `LEAKY_BUCKET_RPS` | `10` | Sensor rate limit: average allowed requests per second, per API key (`0` disables the limit) |
-| `LEAKY_BUCKET_WINDOW` | `20` | Sensor rate limit window in seconds: at most `LEAKY_BUCKET_RPS × LEAKY_BUCKET_WINDOW` requests are accepted within the last window (`0` disables the limit) |
-| `LOGBOOK_LIMIT` | `3000` | Number of logbook records kept per API key during logbook rotation |
-
-**Debug levels:**
-
-| Level | Behaviour |
-|-------|-----------|
-| `0` | Errors with file and line; warnings and info messages are logged |
-| `1` | Same as 0, plus debug messages |
-| `2` | Errors with stack trace; warnings, info and debug messages |
-| `3` | Errors with stack trace including function arguments; warnings, info and debug messages |
-
-The stack trace is shown on the error page only to logged-in operators.
+All settings, environment variables and debug levels are documented in the administration guide: [Environment variables](https://github.com/tirrenotechnologies/ADMIN.md#environment-variables) and [Debug levels](https://github.com/tirrenotechnologies/ADMIN.md#debug-levels).
 
 ### Access control
 
-Since v0.10.0 tirreno uses role-based access control (RBAC). Operators are assigned roles, and roles grant permissions to pages.
-
-| Role | Default permissions |
-|------|---------------------|
-| `superuser` | All permissions, including `user_admin` (operator administration) |
-| `operator` | All page permissions (`page_view`, `page_edit`, `page_delete`, `page_publish`) except `user_admin`, on all pages except `/cron` |
-| `guest` | Visitors who are not logged in: `page_view` and `page_edit` on the signup, login, password recovery and error pages only |
-
-Permissions are assigned per role and page (`dshb_roles_permissions`, `dshb_pages_permissions`). The account created at `/signup` (only one account can be created this way) gets the `operator` role.
+Roles and permissions are documented in [Access control](https://github.com/tirrenotechnologies/ADMIN.md#access-control) in the administration guide.
 
 ---
 
 ## API integration
 
-Event ingestion happens through sensors that collect the events, and they all get into the queue. Then, when the cron starts (in loop-until-drained), it defines the users that had actions since the last cron run, updates statistics, and calculates the context that is used by the active rules to determine a final risk score for each entity.
+Event ingestion happens through sensors that collect the events, and they all get into the queue. Then, when the cron starts (in loop-until-drained), it defines the entities that had actions since the last cron run, updates statistics, and calculates the context that is used by the active rules to determine a final risk score for each entity.
 
 ### Official tracker libraries
 
@@ -403,8 +358,9 @@ Use one of these:
 | **PHP** | `composer require tirreno/tirreno-tracker` |
 | **Python** | `pip install tirreno_tracker` |
 | **Node.js** | `npm install @tirreno/tirreno-tracker` |
+| **WordPress** | Upload the plugin to WordPress, activate it, then enter your Tracking ID and tirreno URL |
 
-Repos: [PHP](https://github.com/tirrenotechnologies/tirreno-php-tracker), [Python](https://github.com/tirrenotechnologies/tirreno-python-tracker), [Node.js](https://github.com/tirrenotechnologies/tirreno-nodejs-tracker)
+Repos: [PHP](https://github.com/tirrenotechnologies/tirreno-php-tracker), [Python](https://github.com/tirrenotechnologies/tirreno-python-tracker), [Node.js](https://github.com/tirrenotechnologies/tirreno-nodejs-tracker), [WordPress](https://github.com/tirrenotechnologies/tirreno-wordpress-tracker)
 
 ### Sensor API reference
 
@@ -413,7 +369,7 @@ Repos: [PHP](https://github.com/tirrenotechnologies/tirreno-php-tracker), [Pytho
 ```
 POST /sensor/
 Content-Type: application/x-www-form-urlencoded
-Api-Key: YOUR_API_KEY
+Api-Key: YOUR_TRACKING_ID
 ```
 
 **Note:** The API uses form-urlencoded format, not JSON.
@@ -424,10 +380,10 @@ Api-Key: YOUR_API_KEY
 |--------|-------------|
 | `X-Request-Id` | Trace ID (up to 36 characters) stored with the event, or with the rejected request if validation fails |
 
-**Command line:** the sensor can also be called from the CLI, passing the API key and event fields as long options:
+**Command line:** the sensor can also be called from the CLI, passing the Tracking ID and event fields as long options:
 
 ```bash
-php sensor/index.php --apiKey=YOUR_API_KEY --userName=user123 --ipAddress=203.0.113.50 \
+php sensor/index.php --apiKey=YOUR_TRACKING_ID --userName=user123 --ipAddress=203.0.113.50 \
     --url=/login --eventTime="2024-12-08 14:30:00.000" --eventType=account_login
 ```
 
@@ -438,7 +394,7 @@ php sensor/index.php --apiKey=YOUR_API_KEY --userName=user123 --ipAddress=203.0.
 | `userName` | Unique user ID (max 100 chars) |
 | `ipAddress` | IPv4/IPv6 address (invalid IPs default to `0.0.0.0`) |
 | `url` | URL path (max 2047 chars) |
-| `eventTime` | UTC timestamp `Y-m-d H:i:s.v`; `Y-m-d H:i:s` and `Y-m-d H:i:s.u` are also accepted (defaults to current UTC time if missing or invalid) |
+| `eventTime` | UTC timestamp `Y-m-d H:i:s.v`; `Y-m-d H:i:s` and `Y-m-d H:i:s.u` are also accepted (an invalid value is replaced with the current UTC time) |
 
 #### Optional parameters
 
@@ -548,15 +504,31 @@ Required for `field_edit` events. Must be an array of field change objects:
 
 **Note:** Missing required fields default to `"unknown"`. All values are converted to strings.
 
+#### Response codes
+
+| Response | Meaning |
+|----------|---------|
+| 204, no body | Event accepted |
+| 200, empty body | Request rejected: missing or unknown Tracking ID, or a required field is missing. The reason is written to the web server error log |
+| 429 | Rate limited (see [Rate limiting](#rate-limiting)) |
+| 500 | Server error |
+| 403 | Wrong endpoint, e.g., `/sensor` without the trailing slash |
+
+Successful requests (2xx) return no response body.
+
+#### Rate limiting
+
+The sensor has a leaky bucket rate limiter, applied per Tracking ID: at most `LEAKY_BUCKET_RPS × LEAKY_BUCKET_WINDOW` requests are accepted within the window (defaults: `10` requests per second, `20` seconds). Requests over the limit get `429` and appear in the Logbook as **Rate limit exceeded**. Setting either value to `0` disables the limit; see [Environment variables](https://github.com/tirrenotechnologies/ADMIN.md#environment-variables) for how to set them.
+
 #### Blacklist API
 
-Check if a user is blacklisted. The value is matched against user IDs (`userName`) only; IP addresses, emails and phone numbers are not looked up.
+Check if an entity is blacklisted. The value is matched against entity IDs (`userName`) only; IP addresses, emails and phone numbers are not looked up.
 
 **Request:**
 ```
 POST /api/v1/blacklist/search
 Content-Type: application/json
-Api-Key: YOUR_API_KEY
+Api-Key: YOUR_TRACKING_ID
 
 {
     "value": "user123"
@@ -571,21 +543,13 @@ Api-Key: YOUR_API_KEY
 }
 ```
 
-The response is JSON. A missing or unknown API key returns `401`.
+The response is JSON. A missing or unknown Tracking ID returns `401`.
 
 The examples in this guide use `$blacklistService->isBlacklisted($value)` (`blacklist_service.is_blacklisted()` in Python, `blacklistService.isBlacklisted()` in Node.js). It stands for your own small wrapper that sends this request and returns the `blacklisted` field; define it before using the examples.
 
 #### Logbook event types
 
-The Logbook page in tirreno dashboard tracks all API requests with these status codes:
-
-| Status | Description |
-|--------|-------------|
-| Success | Event recorded successfully |
-| Validation warning | Event recorded with field corrections (e.g., truncated values) |
-| Critical validation error | Event rejected due to missing required fields |
-| Critical error | Server error, event not recorded |
-| Rate limit exceeded | Request rejected due to rate limiting (`LEAKY_BUCKET_RPS` & `LEAKY_BUCKET_WINDOW`, set in `config/local/config.local.ini` or as environment variables) |
+The Logbook statuses and columns are described in [Logbook](https://github.com/tirrenotechnologies/USER.md#logbook) in the user guide.
 
 ---
 
@@ -602,11 +566,11 @@ tirreno analyzes user events to detect threats and calculate risk scores. Use ca
 - **Insider threats:** Spot unusual employee behavior, potential data exfiltration
 - **Compliance:** Activity logs and field audit trail for GDPR, SOC 2, PCI-DSS
 - **Forensics:** Investigate incidents with full session history
-- **Risk scoring:** Calculate user trust scores from behavior patterns
+- **Risk scoring:** Calculate entity trust scores from behavior patterns
 - **Fraud prevention:** Block malicious users before damage occurs
 - **IP enrichment:** Add geolocation, ISP, VPN/proxy detection to IP data
 
-tirreno tracks per-user metrics: devices per day, IPs per day, sessions, events per session.
+tirreno tracks per-entity metrics: devices per day, IPs per day, sessions, events per session.
 
 > **IP Enrichment API:** tirreno provides an API for IP geolocation and threat intelligence. The open-source Community Edition includes an optional IP enrichment pack (2,000 free API requests/month). For high-volume needs, contact tirreno for Enterprise options. See [tirreno.com](https://www.tirreno.com) for pricing details.
 
@@ -679,7 +643,7 @@ tirreno tracks per-user metrics: devices per day, IPs per day, sessions, events 
 When integrating tirreno, follow these security best practices:
 
 1. **Install in private environment** Deploy tirreno in a private network with controlled access
-2. **Protect your API key** Store in environment variables, never in code
+2. **Protect your Tracking ID** Store in environment variables, never in code
 3. **Use HTTPS** Always send events over encrypted connections
 4. **Don't log sensitive data** Never include passwords, tokens, or PII in event payloads
 5. **Fail open on errors** Don't block users if tirreno is temporarily unavailable
@@ -689,7 +653,7 @@ When integrating tirreno, follow these security best practices:
 
 ### Quick start
 
-> **Important:** tirreno must be integrated on the backend only. Never send events from frontend JavaScript or mobile apps. Client-side code can be inspected, modified, or bypassed entirely — attackers could disable tracking, forge events, or extract your API key. Backend integration ensures event data cannot be tampered with and your API credentials remain secure.
+> **Important:** tirreno must be integrated on the backend only. Never send events from frontend JavaScript or mobile apps. Client-side code can be inspected, modified, or bypassed entirely — attackers could disable tracking, forge events, or extract your Tracking ID. Backend integration ensures event data cannot be tampered with and your API credentials remain secure.
 
 The fastest way to integrate tirreno is using an official tracker library.
 
@@ -697,7 +661,7 @@ The fastest way to integrate tirreno is using an official tracker library.
 ```bash
 curl -X POST https://your-tirreno-instance.com/sensor/ \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -H "Api-Key: your-api-key" \
+  -H "Api-Key: your-tracking-id" \
   -d "userName=user123" \
   -d "emailAddress=user@example.com" \
   -d "ipAddress=192.168.1.100" \
@@ -758,7 +722,7 @@ pip install tirreno_tracker
 ```python
 from tirreno_tracker import Tracker
 
-tracker = Tracker('https://your-tirreno-instance.com', 'your-api-key')
+tracker = Tracker('https://your-tirreno-instance.com', 'your-tracking-id')
 
 # Track a login
 event = tracker.create_event()
@@ -781,7 +745,7 @@ npm install @tirreno/tirreno-tracker
 ```javascript
 import Tracker from '@tirreno/tirreno-tracker';
 
-const tracker = new Tracker('https://your-tirreno-instance.com', 'your-api-key');
+const tracker = new Tracker('https://your-tirreno-instance.com', 'your-tracking-id');
 
 // Track a registration
 const event = tracker.createEvent();
@@ -1139,18 +1103,13 @@ header('Location: /dashboard');
 
 ### Auto-ban abusive users
 
-tirreno's rules analyze IP addresses, devices and behaviour, and users below the **Auto-blacklisting** threshold are blacklisted automatically. Block them in your application with the [Blacklist API](#blacklist-api).
+tirreno's rules analyze IP addresses, devices and behaviour, and entities below the **Auto-blacklisting** threshold are blacklisted automatically. Block them in your application with the [Blacklist API](#blacklist-api).
 
-**Note:** The Blacklist API matches user IDs only, so blocking by IP address is not currently supported.
+**Note:** The Blacklist API matches entity IDs (`userName`) only, so blocking by IP address is not currently supported.
 
 #### Configure threshold settings
 
-Before implementing auto-ban, configure and test the threshold settings in tirreno:
-
-1. Go to the **Rules engine** page in tirreno dashboard
-2. Set **Manual review** threshold (e.g., 33) users below this score appear in review queue
-3. Set **Auto-blacklisting** threshold (e.g., 20) users below this score are automatically blacklisted
-4. Click **Update** in the **Thresholds settings** form to save settings
+Before implementing auto-ban, configure and test the **Thresholds settings** on the **Rules engine** page, as described in [Thresholds settings](https://github.com/tirrenotechnologies/USER.md#thresholds-settings) in the user guide.
 
 #### Middleware for blocking blacklisted users
 
@@ -1208,7 +1167,7 @@ Each field change object has these properties:
 1. **Verify API connectivity:**
 ```bash
 curl -X POST https://your-tirreno.com/sensor/ \
-  -H "Api-Key: your-api-key" \
+  -H "Api-Key: your-tracking-id" \
   -d "userName=test-user-123" \
   -d "emailAddress=test@example.com" \
   -d "ipAddress=203.0.113.50" \
@@ -1219,19 +1178,15 @@ curl -X POST https://your-tirreno.com/sensor/ \
 ```
 
 2. **Check the Logbook:**
-   - Log in to your tirreno instance
-   - Navigate to **Logbook** in the left menu
-   - View real-time API requests with Source IP, Local timestamp, Endpoint, Status and Raw POST data
-   - Filter by endpoint, IP, or error messages using the search box
-   - The chart shows request volume over time to identify traffic patterns
+   - Navigate to **Logbook** in the left menu and confirm your request has the **Success** status (see [Logbook](https://github.com/tirrenotechnologies/USER.md#logbook) in the user guide)
 
 3. **Check the Entities page:**
-   - Navigate to **Entities** to see the tracked user
-   - Verify the user details and events are correctly recorded
+   - Navigate to **Entities** to see the tracked entity
+   - Verify the entity details and events are correctly recorded
 
 4. **Verify event types:**
    - Test each event type you plan to use
-   - Confirm events appear in the correct user timeline
+   - Confirm events appear in the correct entity timeline
 
 ---
 
@@ -1246,35 +1201,7 @@ The two main customization points are:
 
 ### Rule presets
 
-tirreno includes pre-configured rule sets for common security scenarios. Presets provide a quick starting point—select one in the **Rules settings reset** form on the **Rules engine** page and click **Reset**. Applying a preset is irreversible: it replaces all current rule weights.
-
-| Preset | Use Case |
-|--------|----------|
-| `default` | Empty rules (start from scratch) |
-| `account_takeover` | Detect compromised accounts via new devices, locations, password changes |
-| `credential_stuffing` | Detect automated login attempts and brute force attacks |
-| `content_spam` | Detect spam content and suspicious posting patterns |
-| `account_registration` | Protect registration from fake accounts and bots |
-| `fraud_prevention` | General fraud detection across multiple vectors |
-| `insider_threat` | Detect unusual employee behavior and data exfiltration |
-| `bot_detection` | Identify automated traffic and crawlers |
-| `dormant_account` | Monitor reactivation of long-inactive accounts |
-| `multi_accounting` | Detect users with multiple accounts |
-| `promo_abuse` | Detect promotional code and offer abuse |
-| `api_protection` | Protect APIs from abuse and scanning |
-| `high_risk_regions` | Flag traffic from high-fraud geographic regions |
-
-Each preset assigns weights to specific rules. You can customize the weights after applying a preset.
-
-**Rule weights:**
-
-| Weight | Value | Effect on Risk Score |
-|--------|-------|---------------------|
-| Positive | -20 | Decreases risk (trusted behavior) |
-| None | 0 | Rule disabled |
-| Medium | 10 | Moderate risk increase |
-| High | 20 | Significant risk increase |
-| Extreme | 70 | Major risk increase |
+Rule presets and rule weights are console controls, described in [Rules settings reset](https://github.com/tirrenotechnologies/USER.md#rules-settings-reset) and [Rule weights](https://github.com/tirrenotechnologies/USER.md#rule-weights) in the user guide. Preset files live in `assets/rules/core/preset-*.php`; custom presets can be added to `assets/rules/custom/`.
 
 ### Rule organization
 
@@ -1529,8 +1456,8 @@ class Context extends \Tirreno\Assets\Context {
 #### Testing rules
 
 1. **Refresh rules:** After creating or modifying rules, go to the **Rules engine** page and click **Refresh** at the bottom of the page to apply your changes
-2. **Test a rule:** Select a rule and click the **Play** button (▷) to see how many users are triggered by the rule
-3. **Match rate:** The percentage shown indicates how many of the tested users match the rule (e.g., "22%" means 22% of the tested users trigger this rule). The number of users tested is set by `CHECK_RULE_USERS_LIMIT` in `config/config.ini` (default: 1000)
+2. **Test a rule:** Select a rule and click the **Play** button (▷) to see how many entities are triggered by the rule
+3. **Match rate:** The percentage shown indicates how many of the tested entities match the rule (e.g., "22%" means 22% of the tested entities trigger this rule). The number of entities tested is set by `CHECK_RULE_USERS_LIMIT` in `config/config.ini` (default: 1000)
 
 ### Ruler operators reference
 
@@ -1878,9 +1805,7 @@ Before your contributions can be accepted, you must sign the [tirreno Contributo
 
 #### Prerequisites
 
-- PHP 8.1 to 8.3 with extensions: PDO_PGSQL, pgsql, cURL, mbstring (PHP 8.1+ is required for the development tools)
-- PostgreSQL 12 or greater
-- Apache with mod_rewrite
+- The [system requirements](https://github.com/tirrenotechnologies/ADMIN.md#system-requirements), with PHP 8.1 or later (required for the development tools)
 - Composer
 - Git
 
@@ -1894,50 +1819,28 @@ cd tirreno
 # 2. Install dependencies
 composer install
 
-# 3. Create PostgreSQL database and the required extensions
-createdb tirreno_dev
-# pg_stat_statements can only be created by a PostgreSQL superuser
-sudo -u postgres psql -d tirreno_dev -c "CREATE EXTENSION IF NOT EXISTS citext; CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
-
-# 4. Give the web server write access (Apache runs as www-data, not as you)
+# 3. Give the web server write access (Apache runs as www-data, not as you)
 sudo chgrp -R www-data config assets/logs tmp
 chmod -R g+w config assets/logs tmp
-
-# 5. Run web installer
-# Point Apache to project root, visit: http://localhost/install/
-# Enter the database credentials; the installer creates the schema
-# and writes config/local/config.local.ini
-
-# 6. Delete install directory (important!) and keep Git from committing the deletion
-rm -rf install/
-git ls-files -z install/ | xargs -0 git update-index --skip-worktree
-
-# 7. Setup cron job for the web server user
-sudo crontab -u www-data -e
-# Add: */10 * * * * /usr/bin/php /absolute/path/to/tirreno/index.php /cron
-
-# 8. Create admin account at /signup (available only until the first account exists)
 ```
 
-If the installer fails with "Database already locked by another installation process", a previous attempt left its lock. Remove it with `psql -d tirreno_dev -c "DROP TABLE IF EXISTS dshb_install_flag;"` and run the installer again.
+4. Install tirreno from your working copy by following [Installation](https://github.com/tirrenotechnologies/ADMIN.md#installation) in the administration guide: prepare the database, run the web installer, delete the `install/` directory, set up the [cron job](https://github.com/tirrenotechnologies/ADMIN.md#cronjob-setup) and create the admin account.
 
-Before pulling updates that change `install/`, undo step 6 with `git ls-files -z install/ | xargs -0 git update-index --no-skip-worktree` and restore the files with `git checkout -- install/`.
+5. Keep Git from committing the deletion of `install/`:
+
+```bash
+git ls-files -z install/ | xargs -0 git update-index --skip-worktree
+```
+
+Before pulling updates that change `install/`, undo step 5 with `git ls-files -z install/ | xargs -0 git update-index --no-skip-worktree` and restore the files with `git checkout -- install/`.
 
 #### Configuration via environment variables
 
-Instead of `config/local/config.local.ini`, configuration can be provided through environment variables. Environment variables take precedence over values in the `.ini` files for the settings tirreno reads through its configuration layer, including the ones in this section and in the [Configuration reference](#configuration-reference).
-
-| Variable | Description |
-|----------|-------------|
-| `SITE` | Host name(s) of the instance, comma-separated |
-| `DATABASE_URL` | PostgreSQL connection string, e.g. `postgres://user:pass@127.0.0.1:5432/tirreno` |
-| `CONFIG_FILE` | Alternative local config file for the dashboard, relative to `config/` (default: `local/config.local.ini`). The sensor always reads `config/local/config.local.ini` |
+See [Environment variables](https://github.com/tirrenotechnologies/ADMIN.md#environment-variables) in the administration guide.
 
 #### Docker setup
 
-**One line:**
-
-`curl -sL tirreno.com/t.yml | docker compose -f - up -d`
+See [Docker installation](https://github.com/tirrenotechnologies/ADMIN.md#docker-installation) in the administration guide.
 
 ### Code quality tools
 
@@ -2248,21 +2151,20 @@ Before submitting a pull request:
 | Resource | URL |
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
-| Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
 | Resource center | [tirreno.com/bat](https://www.tirreno.com/bat/) |
 | Administration guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
+| Developers Guide | [github.com/tirrenotechnologies/DEVELOPMENT.md](https://github.com/tirrenotechnologies/DEVELOPMENT.md) |
+| User Guide | [github.com/tirrenotechnologies/USER.md](https://github.com/tirrenotechnologies/USER.md) |
 | API reference | [github.com/tirrenotechnologies/API.md](https://github.com/tirrenotechnologies/API.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
 | Docker Hub | [hub.docker.com/r/tirreno/tirreno](https://hub.docker.com/r/tirreno/tirreno) |
-| Docker Repo | [github.com/tirrenotechnologies/docker](https://github.com/tirrenotechnologies/docker) |
 | Packagist | [packagist.org/packages/tirreno/tirreno](https://packagist.org/packages/tirreno/tirreno) |
 | PHP Tracker | [github.com/tirrenotechnologies/tirreno-php-tracker](https://github.com/tirrenotechnologies/tirreno-php-tracker) |
 | Python Tracker | [github.com/tirrenotechnologies/tirreno-python-tracker](https://github.com/tirrenotechnologies/tirreno-python-tracker) |
 | Node.js Tracker | [github.com/tirrenotechnologies/tirreno-nodejs-tracker](https://github.com/tirrenotechnologies/tirreno-nodejs-tracker) |
+| WordPress Tracker | [github.com/tirrenotechnologies/tirreno-wordpress-tracker](https://github.com/tirrenotechnologies/tirreno-wordpress-tracker) |
 | Community Chat | [chat.tirreno.com](https://chat.tirreno.com) |
-| Support Email | ping@tirreno.com |
-| Security Email | security@tirreno.com |
 
 ---
 
@@ -2281,5 +2183,3 @@ The name "tirreno" is a registered trademark of tirreno technologies sàrl.
 ---
 
 *tirreno Copyright (C) 2026 tirreno technologies sàrl, Vaud, Switzerland.*
-
-'t'
