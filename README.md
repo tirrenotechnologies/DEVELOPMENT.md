@@ -549,7 +549,7 @@ The examples in this guide use `$blacklistService->isBlacklisted($value)` (`blac
 
 #### Logbook event types
 
-The Logbook statuses and columns are described in [Logbook](https://github.com/tirrenotechnologies/USER.md#logbook) in the user guide.
+The Logbook statuses and columns are described in [Logbook](https://github.com/tirrenotechnologies/OPERATOR.md#logbook) in the user guide.
 
 ---
 
@@ -1109,7 +1109,7 @@ tirreno's rules analyze IP addresses, devices and behaviour, and entities below 
 
 #### Configure threshold settings
 
-Before implementing auto-ban, configure and test the **Thresholds settings** on the **Rules engine** page, as described in [Thresholds settings](https://github.com/tirrenotechnologies/USER.md#thresholds-settings) in the user guide.
+Before implementing auto-ban, configure and test the **Thresholds settings** on the **Rules engine** page, as described in [Thresholds settings](https://github.com/tirrenotechnologies/OPERATOR.md#thresholds-settings) in the user guide.
 
 #### Middleware for blocking blacklisted users
 
@@ -1178,7 +1178,7 @@ curl -X POST https://your-tirreno.com/sensor/ \
 ```
 
 2. **Check the Logbook:**
-   - Navigate to **Logbook** in the left menu and confirm your request has the **Success** status (see [Logbook](https://github.com/tirrenotechnologies/USER.md#logbook) in the user guide)
+   - Navigate to **Logbook** in the left menu and confirm your request has the **Success** status (see [Logbook](https://github.com/tirrenotechnologies/OPERATOR.md#logbook) in the user guide)
 
 3. **Check the Entities page:**
    - Navigate to **Entities** to see the tracked entity
@@ -1201,7 +1201,7 @@ The two main customization points are:
 
 ### Rule presets
 
-Rule presets and rule weights are console controls, described in [Rules settings reset](https://github.com/tirrenotechnologies/USER.md#rules-settings-reset) and [Rule weights](https://github.com/tirrenotechnologies/USER.md#rule-weights) in the user guide. Preset files live in `assets/rules/core/preset-*.php`; custom presets can be added to `assets/rules/custom/`.
+Rule presets and rule weights are console controls, described in [Rules settings reset](https://github.com/tirrenotechnologies/OPERATOR.md#rules-settings-reset) and [Rule weights](https://github.com/tirrenotechnologies/OPERATOR.md#rule-weights) in the user guide. Preset files live in `assets/rules/core/preset-*.php`; custom presets can be added to `assets/rules/custom/`.
 
 ### Rule organization
 
@@ -2151,10 +2151,11 @@ Before submitting a pull request:
 | Resource | URL |
 |----------|-----|
 | Live Demo | [play.tirreno.com](https://play.tirreno.com) (admin/tirreno) |
+| Documentation | [docs.tirreno.com](https://docs.tirreno.com) |
 | Resource center | [tirreno.com/bat](https://www.tirreno.com/bat/) |
-| Administration guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
 | Developers Guide | [github.com/tirrenotechnologies/DEVELOPMENT.md](https://github.com/tirrenotechnologies/DEVELOPMENT.md) |
-| User Guide | [github.com/tirrenotechnologies/USER.md](https://github.com/tirrenotechnologies/USER.md) |
+| Administrator guide | [github.com/tirrenotechnologies/ADMIN.md](https://github.com/tirrenotechnologies/ADMIN.md) |
+| Operator guide | [github.com/tirrenotechnologies/OPERATOR.md](https://github.com/tirrenotechnologies/OPERATOR.md) |
 | API reference | [github.com/tirrenotechnologies/API.md](https://github.com/tirrenotechnologies/API.md) |
 | GitHub | [github.com/tirrenotechnologies/tirreno](https://github.com/tirrenotechnologies/tirreno) |
 | GitLab Mirror | [gitlab.com/tirreno/tirreno](https://gitlab.com/tirreno/tirreno) |
